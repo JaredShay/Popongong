@@ -1,0 +1,8 @@
+[package]
+
+name = "not_pong"
+version = "0.0.0"
+authors = ["Jared <jared.shay@gmail.com>"]
+
+[dependencies]
+sdl2 = "0.31"
