@@ -4,6 +4,8 @@ use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
+use sdl2::rect::Rect;
+use sdl2::pixels::PixelFormatEnum;
 
 // This is heavily commented and the comments may lie. It is my best effort to
 // document things I don't understand very well.
@@ -11,6 +13,12 @@ use std::time::Duration;
 // TODO:
 // - unwrap is discouraged as it will panic if None is returned. Use pattern
 //   matching instead of unwrap to handle that case explicitly.
+
+const WINDOW_WIDTH: u32 = 800;
+const WINDOW_HEIGHT: u32 = 600;
+const PADDLE_WIDTH: u32 = 128;
+const PADDLE_HEIGHT: u32 = 256;
+
 fn main() {
     // Create an OpenGl context.
     //
@@ -23,8 +31,9 @@ fn main() {
     // manually initialsed.
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Not Pong", 800, 600)
+    let window = video_subsystem.window("Not Pong", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
+        .fullscreen()
         .opengl()
         .build()
         .unwrap();
@@ -39,9 +48,37 @@ fn main() {
         .build()
         .unwrap();
 
-    // This appears to fill the whole canvas
-    canvas.set_draw_color(Color::RGB(255, 0, 0));
+    let texture_creator = canvas.texture_creator();
+    let mut texture = texture_creator.create_texture_streaming(
+        PixelFormatEnum::RGB24, PADDLE_WIDTH, PADDLE_HEIGHT).unwrap();
+
+    // lock texture to perform direct pixel writes. If this recalculation is
+    // heavy consider caching where possible or moving the logic to a shader.
+    // Using a shader will allow the graphics card to do the heavy lifting but
+    // will be harder to make portable.
+    //
+    // This is a one time operation outside of the main loop so this is fine.
+    //
+    // The second argument to the supplied closure here is `pitch` which I
+    // believe is "the length of a row of pixels in bytes".
+    let texture_buffer = [0; PADDLE_WIDTH as usize * PADDLE_HEIGHT as usize * 3]; // * 3 for RGB
+    texture.with_lock(None, |buffer: &mut [u8], _| {
+        buffer.clone_from_slice(&texture_buffer);
+    }).unwrap();
+
+    // Initial render
+
+    // Set draw color to white
+    canvas.set_draw_color(Color::RGB(255, 255, 255));
+
+    // Always a good idea to clear before rendering
     canvas.clear();
+
+    // render paddle 1 to the top left corner
+    canvas.copy(&texture, None, Some(Rect::new(0, 0, PADDLE_WIDTH, PADDLE_HEIGHT))).unwrap();
+    // render paddle 2 to the top right corner
+    canvas.copy(&texture, None, Some(Rect::new((WINDOW_WIDTH - PADDLE_WIDTH) as i32, 0, PADDLE_WIDTH, PADDLE_HEIGHT))).unwrap();
+
     canvas.present();
 
     // Get a reference to the SDL "event pump".
@@ -58,6 +95,18 @@ fn main() {
             match event {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'main
+                },
+                Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
+                    println!("Right");
+                },
+                Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
+                    println!("Down");
+                },
+                Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
+                    println!("Left");
+                },
+                Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
+                    println!("Up");
                 },
                 _ => {}
             }
