@@ -3,7 +3,6 @@ extern crate sdl2;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use std::time::Duration;
 use sdl2::rect::Rect;
 use sdl2::pixels::PixelFormatEnum;
 
@@ -18,6 +17,8 @@ const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 600;
 const PADDLE_WIDTH: u32 = 128;
 const PADDLE_HEIGHT: u32 = 256;
+
+const BACKGROUND_COLOR: (u8, u8, u8) = (255, 255, 255); // white
 
 fn main() {
     // Create an OpenGl context.
@@ -48,6 +49,9 @@ fn main() {
         .build()
         .unwrap();
 
+    // This looks like garbage. Tuple splatting doesn't exist. Fun to say though
+    canvas.set_draw_color(Color::RGB(BACKGROUND_COLOR.0, BACKGROUND_COLOR.1, BACKGROUND_COLOR.2));
+
     let texture_creator = canvas.texture_creator();
     let mut texture = texture_creator.create_texture_streaming(
         PixelFormatEnum::RGB24, PADDLE_WIDTH, PADDLE_HEIGHT).unwrap();
@@ -63,22 +67,25 @@ fn main() {
     // believe is "the length of a row of pixels in bytes".
     let texture_buffer = [0; PADDLE_WIDTH as usize * PADDLE_HEIGHT as usize * 3]; // * 3 for RGB
     texture.with_lock(None, |buffer: &mut [u8], _| {
+        // could just loop and initialize each el here. This is just because I
+        // was curious how to copy an existing buffer in rust. This only works
+        // because I'm setting each el to 0 which makes each pixel RGB(0, 0, 0).
+        // Would need to do something else to get a color that had different
+        // values.
         buffer.clone_from_slice(&texture_buffer);
     }).unwrap();
 
+    // Rect has a set_<x|y> method which is all we need to move them about
+    // Starting co-ords are top left.
+    let mut paddle_one = Rect::new(0, 0, PADDLE_WIDTH, PADDLE_HEIGHT);
+    // Top right for this one
+    let mut paddle_two = Rect::new((WINDOW_WIDTH - PADDLE_WIDTH) as i32, 0, PADDLE_WIDTH, PADDLE_HEIGHT);
+
     // Initial render
-
-    // Set draw color to white
-    canvas.set_draw_color(Color::RGB(255, 255, 255));
-
     // Always a good idea to clear before rendering
     canvas.clear();
-
-    // render paddle 1 to the top left corner
-    canvas.copy(&texture, None, Some(Rect::new(0, 0, PADDLE_WIDTH, PADDLE_HEIGHT))).unwrap();
-    // render paddle 2 to the top right corner
-    canvas.copy(&texture, None, Some(Rect::new((WINDOW_WIDTH - PADDLE_WIDTH) as i32, 0, PADDLE_WIDTH, PADDLE_HEIGHT))).unwrap();
-
+    canvas.copy(&texture, None, Some(paddle_one)).unwrap();
+    canvas.copy(&texture, None, Some(paddle_two)).unwrap();
     canvas.present();
 
     // Get a reference to the SDL "event pump".
@@ -96,22 +103,27 @@ fn main() {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'main
                 },
-                Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
-                    println!("Right");
-                },
                 Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
-                    println!("Down");
-                },
-                Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
-                    println!("Left");
+                    // this doesn't feel very idiomatic. Referencing the value
+                    // inside the set all throws a compiler error. This just
+                    // breaks the statement into two lines to avoid any
+                    // confusion
+
+                    let y = paddle_one.y;
+                    paddle_one.set_y(y + 10);
                 },
                 Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
-                    println!("Up");
+                    // see above comment
+                    let y = paddle_one.y;
+                    paddle_one.set_y(y - 10);
                 },
                 _ => {}
             }
         }
+
+        canvas.clear();
+        canvas.copy(&texture, None, Some(paddle_one)).unwrap();
+        canvas.copy(&texture, None, Some(paddle_two)).unwrap();
+        canvas.present();
     }
-    // Sleep a bit I guess... Just cargo culted this in.
-    ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
 }
