@@ -6,6 +6,8 @@ use sdl2::keyboard::Keycode;
 use sdl2::rect::Rect;
 use sdl2::pixels::PixelFormatEnum;
 
+use std::collections::HashMap;
+
 // This is heavily commented and the comments may lie. It is my best effort to
 // document things I don't understand very well.
 //
@@ -15,8 +17,8 @@ use sdl2::pixels::PixelFormatEnum;
 
 const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 600;
-const PADDLE_WIDTH: u32 = 128;
-const PADDLE_HEIGHT: u32 = 256;
+const PADDLE_WIDTH: u32 = 100;
+const PADDLE_HEIGHT: u32 = 250;
 
 const BACKGROUND_COLOR: (u8, u8, u8) = (255, 255, 255); // white
 
@@ -72,20 +74,55 @@ fn main() {
         // because I'm setting each el to 0 which makes each pixel RGB(0, 0, 0).
         // Would need to do something else to get a color that had different
         // values.
-        buffer.clone_from_slice(&texture_buffer);
+        buffer.copy_from_slice(&texture_buffer);
     }).unwrap();
 
-    // Rect has a set_<x|y> method which is all we need to move them about
-    // Starting co-ords are top left.
-    let mut paddle_one = Rect::new(0, 0, PADDLE_WIDTH, PADDLE_HEIGHT);
-    // Top right for this one
-    let mut paddle_two = Rect::new((WINDOW_WIDTH - PADDLE_WIDTH) as i32, 0, PADDLE_WIDTH, PADDLE_HEIGHT);
+    struct Paddle {
+        x: i32,
+        y: i32,
+        rect: Rect
+    }
+
+    impl Paddle {
+        const MOVEMENT_STEP: i32 = 10;
+
+        fn new(x: i32, y: i32) -> Paddle {
+            return Paddle {
+                x: x,
+                y: y,
+                rect: Rect::new(x, y, PADDLE_WIDTH, PADDLE_HEIGHT)
+            };
+        }
+
+        fn sdl_rect(&mut self) -> &sdl2::rect::Rect {
+            self.rect.set_x(self.x);
+            self.rect.set_y(self.y);
+
+            return &self.rect;
+        }
+
+        fn up(&mut self) -> () {
+            if (self.y - Self::MOVEMENT_STEP) >= 0 {
+                self.y = self.y - Self::MOVEMENT_STEP;
+            }
+        }
+
+        fn down(&mut self) -> () {
+            // TODO: this check won't pass if the remaining space is < step size.
+            if (self.y + PADDLE_HEIGHT as i32 + Self::MOVEMENT_STEP) <= WINDOW_HEIGHT as i32 {
+                self.y = self.y + Self::MOVEMENT_STEP;
+            }
+        }
+    }
+
+    let mut paddle_one = Paddle::new(0, 0);
+    let mut paddle_two = Paddle::new((WINDOW_WIDTH - PADDLE_WIDTH) as i32, 0);
 
     // Initial render
     // Always a good idea to clear before rendering
     canvas.clear();
-    canvas.copy(&texture, None, Some(paddle_one)).unwrap();
-    canvas.copy(&texture, None, Some(paddle_two)).unwrap();
+    canvas.copy(&texture, None, *paddle_one.sdl_rect()).unwrap();
+    canvas.copy(&texture, None, *paddle_two.sdl_rect()).unwrap();
     canvas.present();
 
     // Get a reference to the SDL "event pump".
@@ -96,6 +133,40 @@ fn main() {
     // the main thread.
     let mut event_pump = sdl_context.event_pump().unwrap();
 
+    // Keep a hash map of key states. A KeyUp or KeyDown event will change the
+    // state of the hash map and not directly modify a game element.
+    let mut keys_pressed = HashMap::new();
+
+    fn handle_key_press_events(event: sdl2::event::Event, keys_pressed: &mut HashMap<&Keycode, bool>) -> () {
+        match event {
+            Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
+                keys_pressed.insert(&Keycode::Up, true);
+            },
+            Event::KeyUp { keycode: Some(Keycode::Up), .. } => {
+                keys_pressed.remove(&Keycode::Up);
+            },
+            Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
+                keys_pressed.insert(&Keycode::Down, true);
+            },
+            Event::KeyUp { keycode: Some(Keycode::Down), .. } => {
+                keys_pressed.remove(&Keycode::Down);
+            },
+            Event::KeyDown { keycode: Some(Keycode::W), .. } => {
+                keys_pressed.insert(&Keycode::W, true);
+            },
+            Event::KeyUp { keycode: Some(Keycode::W), .. } => {
+                keys_pressed.remove(&Keycode::W);
+            },
+            Event::KeyDown { keycode: Some(Keycode::S), .. } => {
+                keys_pressed.insert(&Keycode::S, true);
+            },
+            Event::KeyUp { keycode: Some(Keycode::S), .. } => {
+                keys_pressed.remove(&Keycode::S);
+            },
+            _ => {}
+        }
+    }
+
     'main: loop {
         // Grab lastest events and iterate over them
         for event in event_pump.poll_iter() {
@@ -103,27 +174,29 @@ fn main() {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'main
                 },
-                Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
-                    // this doesn't feel very idiomatic. Referencing the value
-                    // inside the set all throws a compiler error. This just
-                    // breaks the statement into two lines to avoid any
-                    // confusion
+                Event::KeyDown { .. } | Event::KeyUp { .. } => {
+                    handle_key_press_events(event, &mut keys_pressed);
+                }
+                _ => {}
+            }
+        }
 
-                    let y = paddle_one.y;
-                    paddle_one.set_y(y + 10);
-                },
-                Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
-                    // see above comment
-                    let y = paddle_one.y;
-                    paddle_one.set_y(y - 10);
-                },
+        for (key, _) in &keys_pressed {
+            match key {
+                Keycode::Up => { paddle_two.up(); },
+                Keycode::Down => { paddle_two.down(); },
+                Keycode::W => { paddle_one.up(); },
+                Keycode::S => { paddle_one.down(); },
                 _ => {}
             }
         }
 
         canvas.clear();
-        canvas.copy(&texture, None, Some(paddle_one)).unwrap();
-        canvas.copy(&texture, None, Some(paddle_two)).unwrap();
+        // Texture, source, destination.
+        //
+        // Passing source of None means the entire texture is copied
+        canvas.copy(&texture, None, *paddle_one.sdl_rect()).unwrap();
+        canvas.copy(&texture, None, *paddle_two.sdl_rect()).unwrap();
         canvas.present();
     }
 }
