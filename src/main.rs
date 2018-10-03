@@ -7,6 +7,7 @@ use sdl2::rect::Rect;
 use sdl2::pixels::PixelFormatEnum;
 
 use std::collections::HashMap;
+use std::time::{Instant};
 
 // This is heavily commented and the comments may lie. It is my best effort to
 // document things I don't understand very well.
@@ -17,8 +18,8 @@ use std::collections::HashMap;
 
 const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 600;
-const PADDLE_WIDTH: u32 = 100;
-const PADDLE_HEIGHT: u32 = 250;
+const PADDLE_WIDTH: u32 = 50;
+const PADDLE_HEIGHT: u32 = 200;
 
 const BACKGROUND_COLOR: (u8, u8, u8) = (255, 255, 255); // white
 
@@ -36,7 +37,7 @@ fn main() {
 
     let window = video_subsystem.window("Not Pong", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
-        .fullscreen()
+        //.fullscreen()
         .opengl()
         .build()
         .unwrap();
@@ -67,14 +68,10 @@ fn main() {
     //
     // The second argument to the supplied closure here is `pitch` which I
     // believe is "the length of a row of pixels in bytes".
-    let texture_buffer = [0; PADDLE_WIDTH as usize * PADDLE_HEIGHT as usize * 3]; // * 3 for RGB
     texture.with_lock(None, |buffer: &mut [u8], _| {
-        // could just loop and initialize each el here. This is just because I
-        // was curious how to copy an existing buffer in rust. This only works
-        // because I'm setting each el to 0 which makes each pixel RGB(0, 0, 0).
-        // Would need to do something else to get a color that had different
-        // values.
-        buffer.copy_from_slice(&texture_buffer);
+        for el in 0..(PADDLE_WIDTH as usize * PADDLE_HEIGHT as usize * 3 as usize) {
+            buffer[el] = 0;
+        }
     }).unwrap();
 
     struct Paddle {
@@ -84,7 +81,8 @@ fn main() {
     }
 
     impl Paddle {
-        const MOVEMENT_STEP: i32 = 10;
+        // pixels /p ms
+        const MOVEMENT_SPEED: i32 = 1;
 
         fn new(x: i32, y: i32) -> Paddle {
             return Paddle {
@@ -101,16 +99,23 @@ fn main() {
             return &self.rect;
         }
 
-        fn up(&mut self) -> () {
-            if (self.y - Self::MOVEMENT_STEP) >= 0 {
-                self.y = self.y - Self::MOVEMENT_STEP;
+        fn up(&mut self, delta_ms: u64) -> () {
+            let step_size = (delta_ms as i32) * Self::MOVEMENT_SPEED;
+
+            if (self.y - step_size) >= 0 {
+                self.y = self.y - step_size;
+            } else {
+                self.y = 0;
             }
         }
 
-        fn down(&mut self) -> () {
-            // TODO: this check won't pass if the remaining space is < step size.
-            if (self.y + PADDLE_HEIGHT as i32 + Self::MOVEMENT_STEP) <= WINDOW_HEIGHT as i32 {
-                self.y = self.y + Self::MOVEMENT_STEP;
+        fn down(&mut self, delta_ms: u64) -> () {
+            let step_size = (delta_ms as i32) * Self::MOVEMENT_SPEED;
+
+            if (self.y + PADDLE_HEIGHT as i32 + step_size) <= WINDOW_HEIGHT as i32 {
+                self.y = self.y + step_size;
+            } else {
+                self.y = WINDOW_HEIGHT as i32 - PADDLE_HEIGHT as i32;
             }
         }
     }
@@ -118,12 +123,6 @@ fn main() {
     let mut paddle_one = Paddle::new(0, 0);
     let mut paddle_two = Paddle::new((WINDOW_WIDTH - PADDLE_WIDTH) as i32, 0);
 
-    // Initial render
-    // Always a good idea to clear before rendering
-    canvas.clear();
-    canvas.copy(&texture, None, *paddle_one.sdl_rect()).unwrap();
-    canvas.copy(&texture, None, *paddle_two.sdl_rect()).unwrap();
-    canvas.present();
 
     // Get a reference to the SDL "event pump".
     //
@@ -167,7 +166,24 @@ fn main() {
         }
     }
 
+    fn to_ms(duration: std::time::Duration) -> u64 {
+        duration.as_secs() * 1000 + duration.subsec_millis() as u64
+    }
+
+    // Initial render
+    canvas.clear();
+    canvas.copy(&texture, None, *paddle_one.sdl_rect()).unwrap();
+    canvas.copy(&texture, None, *paddle_two.sdl_rect()).unwrap();
+    canvas.present();
+
+    let mut delta_ms: u64;
+    let mut prev_time = Instant::now();
+    let mut curr_time;
+
     'main: loop {
+        curr_time = Instant::now();
+        delta_ms = to_ms(curr_time.duration_since(prev_time));
+
         // Grab lastest events and iterate over them
         for event in event_pump.poll_iter() {
             match event {
@@ -183,14 +199,19 @@ fn main() {
 
         for (key, _) in &keys_pressed {
             match key {
-                Keycode::Up => { paddle_two.up(); },
-                Keycode::Down => { paddle_two.down(); },
-                Keycode::W => { paddle_one.up(); },
-                Keycode::S => { paddle_one.down(); },
+                Keycode::Up => { paddle_two.up(delta_ms); },
+                Keycode::Down => { paddle_two.down(delta_ms); },
+                Keycode::W => { paddle_one.up(delta_ms); },
+                Keycode::S => { paddle_one.down(delta_ms); },
                 _ => {}
             }
         }
 
+        // render
+        //
+        // This should be implemented by looping over all game elements that
+        // can be copied to the canvas, performing a copy if they are updated,
+        // then calling render
         canvas.clear();
         // Texture, source, destination.
         //
@@ -198,5 +219,8 @@ fn main() {
         canvas.copy(&texture, None, *paddle_one.sdl_rect()).unwrap();
         canvas.copy(&texture, None, *paddle_two.sdl_rect()).unwrap();
         canvas.present();
+
+        // Update time. Conceptually easier for me to see this here
+        prev_time = curr_time;
     }
 }
