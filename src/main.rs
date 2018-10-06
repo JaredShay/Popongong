@@ -9,17 +9,21 @@ use sdl2::pixels::PixelFormatEnum;
 use std::collections::HashMap;
 use std::time::{Instant};
 
-// This is heavily commented and the comments may lie. It is my best effort to
-// document things I don't understand very well.
-//
-// TODO:
-// - unwrap is discouraged as it will panic if None is returned. Use pattern
-//   matching instead of unwrap to handle that case explicitly.
+mod point;
+use point::Point;
 
-const WINDOW_WIDTH: u32 = 800;
-const WINDOW_HEIGHT: u32 = 600;
-const PADDLE_WIDTH: u32 = 50;
-const PADDLE_HEIGHT: u32 = 200;
+mod paddle;
+use paddle::Paddle;
+
+mod ball;
+use ball::Ball;
+
+const WINDOW_WIDTH: i32 = 800;
+const WINDOW_HEIGHT: i32 = 600;
+const PADDLE_WIDTH: i32 = 50;
+const PADDLE_HEIGHT: i32 = 200;
+const BALL_WIDTH: i32 = 100;
+const BALL_HEIGHT: i32 = 100;
 
 const BACKGROUND_COLOR: (u8, u8, u8) = (255, 255, 255); // white
 
@@ -35,7 +39,7 @@ fn main() {
     // manually initialsed.
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Not Pong", WINDOW_WIDTH, WINDOW_HEIGHT)
+    let window = video_subsystem.window("Not Pong", WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32)
         .position_centered()
         //.fullscreen()
         .opengl()
@@ -57,7 +61,7 @@ fn main() {
 
     let texture_creator = canvas.texture_creator();
     let mut texture = texture_creator.create_texture_streaming(
-        PixelFormatEnum::RGB24, PADDLE_WIDTH, PADDLE_HEIGHT).unwrap();
+        PixelFormatEnum::RGB24, PADDLE_WIDTH as u32, PADDLE_HEIGHT as u32).unwrap();
 
     // lock texture to perform direct pixel writes. If this recalculation is
     // heavy consider caching where possible or moving the logic to a shader.
@@ -69,60 +73,39 @@ fn main() {
     // The second argument to the supplied closure here is `pitch` which I
     // believe is "the length of a row of pixels in bytes".
     texture.with_lock(None, |buffer: &mut [u8], _| {
-        for el in 0..(PADDLE_WIDTH as usize * PADDLE_HEIGHT as usize * 3 as usize) {
+        for el in 0..((PADDLE_WIDTH * PADDLE_HEIGHT * 3) as usize) {
             buffer[el] = 0;
         }
     }).unwrap();
 
-    struct Paddle {
-        x: i32,
-        y: i32,
-        rect: Rect
-    }
 
-    impl Paddle {
-        // pixels /p ms
-        const MOVEMENT_SPEED: i32 = 1;
+    let mut paddle_one = Paddle::new(
+                Point{ x: 0.0, y: 0.0 },
+                PADDLE_WIDTH as u32,
+                PADDLE_HEIGHT as u32,
+                1.0
+            );
 
-        fn new(x: i32, y: i32) -> Paddle {
-            return Paddle {
-                x: x,
-                y: y,
-                rect: Rect::new(x, y, PADDLE_WIDTH, PADDLE_HEIGHT)
-            };
-        }
+    let mut paddle_two = Paddle::new(
+                Point{ x: (WINDOW_WIDTH - PADDLE_WIDTH) as f64, y: 0.0 },
+                PADDLE_WIDTH as u32,
+                PADDLE_HEIGHT as u32,
+                1.0
+            );
 
-        fn sdl_rect(&mut self) -> &sdl2::rect::Rect {
-            self.rect.set_x(self.x);
-            self.rect.set_y(self.y);
-
-            return &self.rect;
-        }
-
-        fn up(&mut self, delta_ms: u64) -> () {
-            let step_size = (delta_ms as i32) * Self::MOVEMENT_SPEED;
-
-            if (self.y - step_size) >= 0 {
-                self.y = self.y - step_size;
-            } else {
-                self.y = 0;
-            }
-        }
-
-        fn down(&mut self, delta_ms: u64) -> () {
-            let step_size = (delta_ms as i32) * Self::MOVEMENT_SPEED;
-
-            if (self.y + PADDLE_HEIGHT as i32 + step_size) <= WINDOW_HEIGHT as i32 {
-                self.y = self.y + step_size;
-            } else {
-                self.y = WINDOW_HEIGHT as i32 - PADDLE_HEIGHT as i32;
-            }
-        }
-    }
-
-    let mut paddle_one = Paddle::new(0, 0);
-    let mut paddle_two = Paddle::new((WINDOW_WIDTH - PADDLE_WIDTH) as i32, 0);
-
+    // TODO: Randomonly calculate a target point
+    let mut ball = Ball::new(
+                Point {
+                    x: (WINDOW_WIDTH as f64) / 2.0 - (BALL_WIDTH as f64)  / 2.0,
+                    y: (WINDOW_HEIGHT as f64) / 2.0 - (BALL_HEIGHT as f64) / 2.0
+                },
+                Point{
+                    x: 0.0,
+                    y: WINDOW_HEIGHT as f64 / 2.0
+                },
+                BALL_WIDTH as u32,
+                BALL_HEIGHT as u32,
+            );
 
     // Get a reference to the SDL "event pump".
     //
@@ -174,6 +157,7 @@ fn main() {
     canvas.clear();
     canvas.copy(&texture, None, *paddle_one.sdl_rect()).unwrap();
     canvas.copy(&texture, None, *paddle_two.sdl_rect()).unwrap();
+    canvas.copy(&texture, None, *ball.sdl_rect()).unwrap();
     canvas.present();
 
     let mut delta_ms: u64;
@@ -199,12 +183,35 @@ fn main() {
 
         for (key, _) in &keys_pressed {
             match key {
-                Keycode::Up => { paddle_two.up(delta_ms); },
-                Keycode::Down => { paddle_two.down(delta_ms); },
-                Keycode::W => { paddle_one.up(delta_ms); },
-                Keycode::S => { paddle_one.down(delta_ms); },
+                Keycode::Up => { paddle_two.up(delta_ms, 0.0); },
+                Keycode::Down => { paddle_two.down(delta_ms, WINDOW_HEIGHT as f64); },
+                Keycode::W => { paddle_one.up(delta_ms, 0.0); },
+                Keycode::S => { paddle_one.down(delta_ms, WINDOW_HEIGHT as f64); },
                 _ => {}
             }
+        }
+
+        ball.update(delta_ms);
+
+        // Edge collisions here
+        if ball.y() <= 0 || ball.y() + BALL_HEIGHT >= WINDOW_HEIGHT {
+            // collision with top or bottom edge
+            ball.movement_vector.y = ball.movement_vector.y * -1.0;
+        } else if ball.x() <= 0 || ball.x() + BALL_WIDTH >= WINDOW_WIDTH {
+            // collision with left or right edge
+            ball.movement_vector.x = ball.movement_vector.x * -1.0;
+        }
+
+        //  Paddle collision
+        //
+        //  Paddle 1's right edge
+        if ball.x() <= PADDLE_WIDTH && ball.y() > paddle_one.y() - BALL_HEIGHT && ball.y() < paddle_one.y() + PADDLE_HEIGHT + BALL_HEIGHT {
+            ball.movement_vector.x = ball.movement_vector.x * -1.0;
+        }
+
+        // Paddle 2 left edge
+        if ball.x() + BALL_WIDTH >= WINDOW_WIDTH - PADDLE_WIDTH && ball.y() > paddle_two.y() - BALL_HEIGHT && ball.y() < paddle_two.y() + PADDLE_HEIGHT + BALL_HEIGHT {
+            ball.movement_vector.x = ball.movement_vector.x * -1.0;
         }
 
         // render
@@ -218,6 +225,7 @@ fn main() {
         // Passing source of None means the entire texture is copied
         canvas.copy(&texture, None, *paddle_one.sdl_rect()).unwrap();
         canvas.copy(&texture, None, *paddle_two.sdl_rect()).unwrap();
+        canvas.copy(&texture, None, *ball.sdl_rect()).unwrap();
         canvas.present();
 
         // Update time. Conceptually easier for me to see this here
