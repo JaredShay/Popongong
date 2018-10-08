@@ -3,20 +3,16 @@ extern crate sdl2;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::rect::Rect;
 use sdl2::pixels::PixelFormatEnum;
 
 use std::collections::HashMap;
 use std::time::{Instant};
 
-mod point;
-use point::Point;
+mod vector;
+use vector::Vector;
 
-mod paddle;
-use paddle::Paddle;
-
-mod ball;
-use ball::Ball;
+mod component;
+use component::{Paddle, Ball};
 
 const WINDOW_WIDTH: i32 = 800;
 const WINDOW_HEIGHT: i32 = 600;
@@ -78,33 +74,32 @@ fn main() {
         }
     }).unwrap();
 
-
     let mut paddle_one = Paddle::new(
-                Point{ x: 0.0, y: 0.0 },
+                Vector{ x: 0.0, y: 0.0 },
                 PADDLE_WIDTH as u32,
                 PADDLE_HEIGHT as u32,
                 1.0
             );
 
     let mut paddle_two = Paddle::new(
-                Point{ x: (WINDOW_WIDTH - PADDLE_WIDTH) as f64, y: 0.0 },
+                Vector{ x: (WINDOW_WIDTH - PADDLE_WIDTH) as f64, y: 0.0 },
                 PADDLE_WIDTH as u32,
                 PADDLE_HEIGHT as u32,
                 1.0
             );
 
-    // TODO: Randomonly calculate a target point
     let mut ball = Ball::new(
-                Point {
+                Vector {
                     x: (WINDOW_WIDTH as f64) / 2.0 - (BALL_WIDTH as f64)  / 2.0,
                     y: (WINDOW_HEIGHT as f64) / 2.0 - (BALL_HEIGHT as f64) / 2.0
                 },
-                Point{
+                Vector{
                     x: 0.0,
                     y: WINDOW_HEIGHT as f64 / 2.0
                 },
                 BALL_WIDTH as u32,
                 BALL_HEIGHT as u32,
+                0.4,
             );
 
     // Get a reference to the SDL "event pump".
@@ -196,22 +191,22 @@ fn main() {
         // Edge collisions here
         if ball.y() <= 0 || ball.y() + BALL_HEIGHT >= WINDOW_HEIGHT {
             // collision with top or bottom edge
-            ball.movement_vector.y = ball.movement_vector.y * -1.0;
+            ball.velocity.y = ball.velocity.y * -1.0;
         } else if ball.x() <= 0 || ball.x() + BALL_WIDTH >= WINDOW_WIDTH {
             // collision with left or right edge
-            ball.movement_vector.x = ball.movement_vector.x * -1.0;
+            ball.velocity.x = ball.velocity.x * -1.0;
         }
 
         //  Paddle collision
         //
         //  Paddle 1's right edge
         if ball.x() <= PADDLE_WIDTH && ball.y() > paddle_one.y() - BALL_HEIGHT && ball.y() < paddle_one.y() + PADDLE_HEIGHT + BALL_HEIGHT {
-            ball.movement_vector.x = ball.movement_vector.x * -1.0;
+            ball.velocity.x = ball.velocity.x * -1.0;
         }
 
         // Paddle 2 left edge
         if ball.x() + BALL_WIDTH >= WINDOW_WIDTH - PADDLE_WIDTH && ball.y() > paddle_two.y() - BALL_HEIGHT && ball.y() < paddle_two.y() + PADDLE_HEIGHT + BALL_HEIGHT {
-            ball.movement_vector.x = ball.movement_vector.x * -1.0;
+            ball.velocity.x = ball.velocity.x * -1.0;
         }
 
         // render
