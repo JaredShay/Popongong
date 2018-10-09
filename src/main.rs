@@ -16,10 +16,14 @@ use component::{Paddle, Ball};
 
 const WINDOW_WIDTH: i32 = 800;
 const WINDOW_HEIGHT: i32 = 600;
-const PADDLE_WIDTH: i32 = 50;
-const PADDLE_HEIGHT: i32 = 200;
+
+const PADDLE_WIDTH: i32 = 40;
+const PADDLE_HEIGHT: i32 = 240;
+const PADDLE_SEGMENT: i32 = 40;
+
 const BALL_WIDTH: i32 = 100;
 const BALL_HEIGHT: i32 = 100;
+const MAX_BALL_SPEED: f64 = 1.5;
 
 const BACKGROUND_COLOR: (u8, u8, u8) = (255, 255, 255); // white
 
@@ -78,28 +82,35 @@ fn main() {
                 Vector{ x: 0.0, y: 0.0 },
                 PADDLE_WIDTH as u32,
                 PADDLE_HEIGHT as u32,
-                1.0
+                0.5
             );
 
     let mut paddle_two = Paddle::new(
                 Vector{ x: (WINDOW_WIDTH - PADDLE_WIDTH) as f64, y: 0.0 },
                 PADDLE_WIDTH as u32,
                 PADDLE_HEIGHT as u32,
-                1.0
+                0.5
             );
 
+    // calculate starting velocity
+    // Pick random point on screen
+    // Calc norm vector from ball
+    // Multiple by some speed multiplier
+    let target = Vector { x: 0.0, y: WINDOW_HEIGHT as f64 / 2.0 };
+
+    let starting_pos = Vector {
+            x: (WINDOW_WIDTH as f64) / 2.0 - (BALL_WIDTH as f64)  / 2.0,
+            y: (WINDOW_HEIGHT as f64) / 2.0 - (BALL_HEIGHT as f64) / 2.0
+        };
+
+    // TODO: 0.4 is just magic to make the init velocity feel right
+    let velocity = target.subtract(&starting_pos).normalize().product(0.4);
+
     let mut ball = Ball::new(
-                Vector {
-                    x: (WINDOW_WIDTH as f64) / 2.0 - (BALL_WIDTH as f64)  / 2.0,
-                    y: (WINDOW_HEIGHT as f64) / 2.0 - (BALL_HEIGHT as f64) / 2.0
-                },
-                Vector{
-                    x: 0.0,
-                    y: WINDOW_HEIGHT as f64 / 2.0
-                },
+                starting_pos,
                 BALL_WIDTH as u32,
                 BALL_HEIGHT as u32,
-                0.4,
+                velocity
             );
 
     // Get a reference to the SDL "event pump".
@@ -189,24 +200,70 @@ fn main() {
         ball.update(delta_ms);
 
         // Edge collisions here
-        if ball.y() <= 0 || ball.y() + BALL_HEIGHT >= WINDOW_HEIGHT {
-            // collision with top or bottom edge
+        //
+        // Top and bottom
+        if ball.velocity.y.is_sign_negative() && ball.y() <= 0 {
+            // flip y
             ball.velocity.y = ball.velocity.y * -1.0;
-        } else if ball.x() <= 0 || ball.x() + BALL_WIDTH >= WINDOW_WIDTH {
-            // collision with left or right edge
+        } else if ball.velocity.y.is_sign_positive() && ball.y() + BALL_HEIGHT >= WINDOW_HEIGHT {
+            ball.velocity.y = ball.velocity.y * -1.0;
+        }
+
+        // Left and right edge detection
+        if ball.velocity.x.is_sign_negative() && ball.x() <= 0 {
+            ball.velocity.x = ball.velocity.x * -1.0;
+        } else if ball.velocity.x.is_sign_positive() && ball.x() + BALL_WIDTH >= WINDOW_WIDTH {
             ball.velocity.x = ball.velocity.x * -1.0;
         }
 
         //  Paddle collision
         //
         //  Paddle 1's right edge
-        if ball.x() <= PADDLE_WIDTH && ball.y() > paddle_one.y() - BALL_HEIGHT && ball.y() < paddle_one.y() + PADDLE_HEIGHT + BALL_HEIGHT {
-            ball.velocity.x = ball.velocity.x * -1.0;
+        if ball.velocity.x.is_sign_negative() {
+            // paddle 1's top
+            if ball.x() <= PADDLE_WIDTH && ball.y() > paddle_one.y() - BALL_HEIGHT && ball.y() < paddle_one.y() + PADDLE_HEIGHT {
+                // x isn't necessarily the same here but assuming they are makes
+                // this slightly simpler.
+                let collision_distance = ball.center().y - paddle_one.center().y;
+
+                // Modify y velocity depending on where the ball hit
+                ball.velocity.y = (collision_distance.abs() / paddle_one.height as f64 / 2.0) * MAX_BALL_SPEED;
+
+                // Flip x velocity
+                ball.velocity.x = ball.velocity.x * -1.0;
+
+                // Ball is moving up and hit bottom two segements of paddle
+                if ball.velocity.y.is_sign_negative() && collision_distance.is_sign_positive() && collision_distance.abs() as i32 > PADDLE_SEGMENT * 2 {
+                    ball.velocity.y = ball.velocity.y * -1.0;
+                } else if ball.velocity.y.is_sign_positive() && collision_distance.is_sign_negative() && collision_distance.abs() as i32 > PADDLE_SEGMENT * 2 {
+                    // Flip y
+                    ball.velocity.y = ball.velocity.y * -1.0;
+                }
+
+            }
         }
 
-        // Paddle 2 left edge
-        if ball.x() + BALL_WIDTH >= WINDOW_WIDTH - PADDLE_WIDTH && ball.y() > paddle_two.y() - BALL_HEIGHT && ball.y() < paddle_two.y() + PADDLE_HEIGHT + BALL_HEIGHT {
-            ball.velocity.x = ball.velocity.x * -1.0;
+        if ball.velocity.x.is_sign_positive() {
+            // Paddle 2 left edge
+            if ball.x() + BALL_WIDTH >= WINDOW_WIDTH - PADDLE_WIDTH && ball.y() > paddle_two.y() - BALL_HEIGHT && ball.y() < paddle_two.y() + PADDLE_HEIGHT {
+                // x isn't necessarily the same here but assuming they are makes
+                // this slightly simpler.
+                let collision_distance = ball.center().y - paddle_two.center().y;
+
+                // Modify y velocity depending on where the ball hit
+                ball.velocity.y = (collision_distance.abs() / paddle_one.height as f64 / 2.0) * MAX_BALL_SPEED;
+
+                // Flip x velocity
+                ball.velocity.x = ball.velocity.x * -1.0;
+
+                // Ball is moving up and hit bottom two segements of paddle
+                if ball.velocity.y.is_sign_negative() && collision_distance.is_sign_positive() && collision_distance.abs() as i32 > PADDLE_SEGMENT * 2 {
+                    ball.velocity.y = ball.velocity.y * -1.0;
+                } else if ball.velocity.y.is_sign_positive() && collision_distance.is_sign_negative() && collision_distance.abs() as i32 > PADDLE_SEGMENT * 2 {
+                    // Flip y
+                    ball.velocity.y = ball.velocity.y * -1.0;
+                }
+            }
         }
 
         // render
