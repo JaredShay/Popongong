@@ -170,6 +170,74 @@ fn main() {
     let mut prev_time = Instant::now();
     let mut curr_time;
 
+    fn ball_collides_with_paddle_one(ball: &Ball, paddle_one: &Paddle) -> bool {
+        ball.is_moving_left() &&
+            ball.left_edge() <= paddle_one.right_edge() &&
+            ball_within_paddle_collision_range(&ball, &paddle_one)
+    }
+
+    fn ball_collides_with_paddle_two(ball: &Ball, paddle_two: &Paddle) -> bool {
+        ball.is_moving_right() &&
+            ball.right_edge() >= WINDOW_WIDTH - paddle_two.width as i32 &&
+            ball_within_paddle_collision_range(&ball, &paddle_two)
+    }
+
+    fn ball_within_paddle_collision_range(ball: &Ball, paddle: &Paddle) -> bool {
+        ball.bottom_edge() >= paddle.top_edge() &&
+            ball.top_edge() <= paddle.bottom_edge()
+    }
+
+    fn ball_collides_with_top(ball: &Ball) -> bool {
+        ball.is_moving_up() && ball.top_edge() <= 0
+    }
+
+    fn ball_collides_with_bottom(ball: &Ball) -> bool {
+        ball.is_moving_down() && ball.bottom_edge() >= WINDOW_HEIGHT
+    }
+
+    fn ball_collides_with_left(ball: &Ball) -> bool {
+        ball.is_moving_left() && ball.left_edge() <= 0
+    }
+
+    fn ball_collides_with_right(ball: &Ball) -> bool {
+        ball.is_moving_right() && ball.right_edge() >= WINDOW_WIDTH
+    }
+
+    // TODO: A nice enhancment here would be to factor in paddle velocity. If
+    // the paddle is stationary don't apply any modification.
+    fn vel_modifier(distance: f64, paddle: &Paddle) -> f64 {
+        distance / paddle.height as f64 / 2.0 * MAX_BALL_SPEED
+    }
+
+    fn ball_collides_with_paddle_extremity(distance: f64) -> bool {
+        distance as i32 > PADDLE_SEGMENT * 2
+    }
+
+    fn ball_moves_into_bottom_half(ball: &Ball, paddle: &Paddle) -> bool {
+        ball.is_moving_up() && ball.top_edge() > paddle.center().y as i32
+    }
+
+    fn ball_moves_into_top_half(ball: &Ball, paddle: &Paddle) -> bool {
+        ball.is_moving_down() && ball.bottom_edge() < paddle.center().y as i32
+    }
+
+    fn handle_ball_paddle_collision(ball: &mut Ball, paddle: &Paddle) {
+        let collision_distance = ball.distance_to(&paddle).y.abs();
+
+        if ball_collides_with_paddle_extremity(collision_distance) &&
+            ball_moves_into_bottom_half(&ball, &paddle) ||
+            ball_moves_into_top_half(&ball, &paddle) {
+
+            ball.flip_y();
+        }
+
+        ball.set_velocity_y_magnitude(
+            vel_modifier(collision_distance, &paddle)
+        );
+
+        ball.flip_x();
+    }
+
     'main: loop {
         curr_time = Instant::now();
         delta_ms = to_ms(curr_time.duration_since(prev_time));
@@ -199,71 +267,22 @@ fn main() {
 
         ball.update(delta_ms);
 
-        // Edge collisions here
-        //
-        // Top and bottom
-        if ball.velocity.y.is_sign_negative() && ball.y() <= 0 {
-            // flip y
-            ball.velocity.y = ball.velocity.y * -1.0;
-        } else if ball.velocity.y.is_sign_positive() && ball.y() + BALL_HEIGHT >= WINDOW_HEIGHT {
-            ball.velocity.y = ball.velocity.y * -1.0;
+        // Edge collisions
+        if ball_collides_with_top(&ball) || ball_collides_with_bottom(&ball) {
+            ball.flip_y();
         }
 
-        // Left and right edge detection
-        if ball.velocity.x.is_sign_negative() && ball.x() <= 0 {
-            ball.velocity.x = ball.velocity.x * -1.0;
-        } else if ball.velocity.x.is_sign_positive() && ball.x() + BALL_WIDTH >= WINDOW_WIDTH {
-            ball.velocity.x = ball.velocity.x * -1.0;
+        if ball_collides_with_left(&ball) || ball_collides_with_right(&ball) {
+            ball.flip_x();
         }
 
-        //  Paddle collision
-        //
-        //  Paddle 1's right edge
-        if ball.velocity.x.is_sign_negative() {
-            // paddle 1's top
-            if ball.x() <= PADDLE_WIDTH && ball.y() > paddle_one.y() - BALL_HEIGHT && ball.y() < paddle_one.y() + PADDLE_HEIGHT {
-                // x isn't necessarily the same here but assuming they are makes
-                // this slightly simpler.
-                let collision_distance = ball.center().y - paddle_one.center().y;
-
-                // Modify y velocity depending on where the ball hit
-                ball.velocity.y = (collision_distance.abs() / paddle_one.height as f64 / 2.0) * MAX_BALL_SPEED;
-
-                // Flip x velocity
-                ball.velocity.x = ball.velocity.x * -1.0;
-
-                // Ball is moving up and hit bottom two segements of paddle
-                if ball.velocity.y.is_sign_negative() && collision_distance.is_sign_positive() && collision_distance.abs() as i32 > PADDLE_SEGMENT * 2 {
-                    ball.velocity.y = ball.velocity.y * -1.0;
-                } else if ball.velocity.y.is_sign_positive() && collision_distance.is_sign_negative() && collision_distance.abs() as i32 > PADDLE_SEGMENT * 2 {
-                    // Flip y
-                    ball.velocity.y = ball.velocity.y * -1.0;
-                }
-
-            }
+        //  Paddle one collision
+        if ball_collides_with_paddle_one(&ball, &paddle_one) {
+            handle_ball_paddle_collision(&mut ball, &paddle_one);
         }
 
-        if ball.velocity.x.is_sign_positive() {
-            // Paddle 2 left edge
-            if ball.x() + BALL_WIDTH >= WINDOW_WIDTH - PADDLE_WIDTH && ball.y() > paddle_two.y() - BALL_HEIGHT && ball.y() < paddle_two.y() + PADDLE_HEIGHT {
-                // x isn't necessarily the same here but assuming they are makes
-                // this slightly simpler.
-                let collision_distance = ball.center().y - paddle_two.center().y;
-
-                // Modify y velocity depending on where the ball hit
-                ball.velocity.y = (collision_distance.abs() / paddle_one.height as f64 / 2.0) * MAX_BALL_SPEED;
-
-                // Flip x velocity
-                ball.velocity.x = ball.velocity.x * -1.0;
-
-                // Ball is moving up and hit bottom two segements of paddle
-                if ball.velocity.y.is_sign_negative() && collision_distance.is_sign_positive() && collision_distance.abs() as i32 > PADDLE_SEGMENT * 2 {
-                    ball.velocity.y = ball.velocity.y * -1.0;
-                } else if ball.velocity.y.is_sign_positive() && collision_distance.is_sign_negative() && collision_distance.abs() as i32 > PADDLE_SEGMENT * 2 {
-                    // Flip y
-                    ball.velocity.y = ball.velocity.y * -1.0;
-                }
-            }
+        if ball_collides_with_paddle_two(&ball, &paddle_two) {
+            handle_ball_paddle_collision(&mut ball, &paddle_two);
         }
 
         // render

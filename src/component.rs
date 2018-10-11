@@ -60,6 +60,59 @@ impl Ball {
 
         self.pos.add_mut(&Vector { x: new_x, y: new_y });
     }
+
+    pub fn set_velocity_y_magnitude(&mut self, new_y_mag: f64) -> () {
+        let mut new_y = new_y_mag;
+
+        if self.velocity.y.is_sign_negative() { new_y = new_y_mag * -1.0; }
+
+        self.velocity.y = new_y
+    }
+
+    // TODO: This should be done with generics that impl the correct traits
+    pub fn distance_to(&self, paddle: &Paddle) -> Vector {
+        self.center().subtract(&paddle.center())
+    }
+
+    pub fn is_moving_up(&self) -> bool {
+        self.velocity.y.is_sign_negative()
+    }
+
+    pub fn is_moving_down(&self) -> bool {
+        self.velocity.y.is_sign_positive()
+    }
+
+    pub fn is_moving_left(&self) -> bool {
+        self.velocity.x.is_sign_negative()
+    }
+
+    pub fn is_moving_right(&self) -> bool {
+        self.velocity.x.is_sign_positive()
+    }
+
+    pub fn flip_y(&mut self) -> () {
+        self.velocity.y = self.velocity.y * -1.0
+    }
+
+    pub fn flip_x(&mut self) -> () {
+        self.velocity.x = self.velocity.x * -1.0
+    }
+
+    pub fn top_edge(&self) -> i32 {
+        self.y()
+    }
+
+    pub fn bottom_edge(&self) -> i32 {
+        self.y() + self.height as i32
+    }
+
+    pub fn left_edge(&self) -> i32 {
+        self.x()
+    }
+
+    pub fn right_edge(&self) -> i32 {
+        self.x() + self.width as i32
+    }
 }
 
 #[derive(Debug)]
@@ -80,6 +133,10 @@ impl Paddle {
             rect: Rect::new(pos.x as i32, pos.y as i32, width, height),
             velocity: Vector { x: 0.0, y: speed }
         };
+    }
+
+    pub fn x(&self) -> i32 {
+        self.pos.x as i32
     }
 
     pub fn y(&self) -> i32 {
@@ -118,5 +175,21 @@ impl Paddle {
         } else {
             self.pos.y = limit - self.height as f64;
         }
+    }
+
+    //pub fn left_edge(&self) -> i32 {
+    //    self.x()
+    //}
+
+    pub fn right_edge(&self) -> i32 {
+        self.x() + self.width as i32
+    }
+
+    pub fn top_edge(&self) -> i32 {
+        self.y()
+    }
+
+    pub fn bottom_edge(&self) -> i32 {
+        self.y() + self.height as i32
     }
 }
