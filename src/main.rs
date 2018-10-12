@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::time::{Instant};
 
 mod vector;
+use vector::Vector;
 
 mod component;
 
@@ -42,7 +43,6 @@ fn main() {
         WINDOW_HEIGHT as u32
     )
         .position_centered()
-        //.fullscreen()
         .opengl()
         .build()
         .unwrap();
@@ -84,6 +84,7 @@ fn main() {
     }).unwrap();
 
     let mut outer_game = Game::new(1);
+    let mut inner_game = Game::new(4);
 
     // Get a reference to the SDL "event pump".
     //
@@ -131,11 +132,17 @@ fn main() {
         duration.as_secs() * 1000 + duration.subsec_millis() as u64
     }
 
+    let outer_origin = Vector { x: 0.0, y: 0.0 };
+
     // Initial render
     canvas.clear();
-    canvas.copy(&texture, None, *outer_game.paddle_one.sdl_rect()).unwrap();
-    canvas.copy(&texture, None, *outer_game.paddle_two.sdl_rect()).unwrap();
-    canvas.copy(&texture, None, *outer_game.ball.sdl_rect()).unwrap();
+    canvas.copy(&texture, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
+    canvas.copy(&texture, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
+
+    canvas.copy(&texture, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
+    canvas.copy(&texture, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
+
+    canvas.copy(&texture, None, *inner_game.ball.sdl_rect(&outer_game.ball.pos)).unwrap();
     canvas.present();
 
     let mut delta_ms: u64;
@@ -143,6 +150,7 @@ fn main() {
     let mut curr_time;
 
     outer_game.start();
+    inner_game.start();
 
     'main: loop {
         curr_time = Instant::now();
@@ -162,6 +170,7 @@ fn main() {
         }
 
         outer_game.update(&keys_pressed, delta_ms);
+        inner_game.update(&keys_pressed, delta_ms);
         //for component in &outer_game.components {
         //    //render components with 0,0 origin
         //}
@@ -175,9 +184,13 @@ fn main() {
         // Texture, source, destination.
         //
         // Passing source of None means the entire texture is copied
-        canvas.copy(&texture, None, *outer_game.paddle_one.sdl_rect()).unwrap();
-        canvas.copy(&texture, None, *outer_game.paddle_two.sdl_rect()).unwrap();
-        canvas.copy(&texture, None, *outer_game.ball.sdl_rect()).unwrap();
+        canvas.copy(&texture, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
+        canvas.copy(&texture, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
+
+        canvas.copy(&texture, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
+        canvas.copy(&texture, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
+
+        canvas.copy(&texture, None, *inner_game.ball.sdl_rect(&outer_game.ball.pos)).unwrap();
         canvas.present();
 
         // Update time. Conceptually easier for me to see this here

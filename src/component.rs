@@ -36,9 +36,9 @@ impl Ball {
         Vector { x: self.pos.x + self.width as f64 / 2.0, y: self.pos.y + self.height as f64 / 2.0 }
     }
 
-    pub fn sdl_rect(&mut self) -> &sdl2::rect::Rect {
-        self.rect.set_x(self.pos.x as i32);
-        self.rect.set_y(self.pos.y as i32);
+    pub fn sdl_rect(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
+        self.rect.set_x(self.pos.x as i32 + origin.x as i32);
+        self.rect.set_y(self.pos.y as i32 + origin.y as i32);
 
         return &self.rect;
     }
@@ -147,9 +147,9 @@ impl Paddle {
         Vector { x: self.pos.x + self.width as f64 / 2.0, y: self.pos.y + self.height as f64 / 2.0 }
     }
 
-    pub fn sdl_rect(&mut self) -> &sdl2::rect::Rect {
-        self.rect.set_x(self.pos.x as i32);
-        self.rect.set_y(self.pos.y as i32);
+    pub fn sdl_rect(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
+        self.rect.set_x(self.pos.x as i32 + origin.x as i32);
+        self.rect.set_y(self.pos.y as i32 + origin.y as i32);
 
         return &self.rect;
     }
