@@ -1,4 +1,8 @@
+extern crate sdl2;
+
 use sdl2::keyboard::Keycode;
+use sdl2::rect::Rect;
+
 use std::collections::HashMap;
 
 use vector::Vector;
@@ -25,6 +29,7 @@ pub enum GameStates {
 
 #[derive(Debug)]
 pub struct Game {
+    pub background: Rect,
     pub paddle_one: Paddle,
     pub paddle_two: Paddle,
     pub ball: Ball,
@@ -141,6 +146,12 @@ impl Game {
         );
 
         Game {
+            background: Rect::new(
+                0,
+                0,
+                WINDOW_WIDTH as u32 / scale as u32,
+                WINDOW_HEIGHT as u32 / scale as u32
+            ),
             paddle_one: paddle_one,
             paddle_two: paddle_two,
             ball: ball,
@@ -151,6 +162,13 @@ impl Game {
 
     pub fn start(&mut self) -> () {
         self.state = GameStates::Playing;
+    }
+
+    pub fn background(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
+        self.background.set_x(origin.x as i32);
+        self.background.set_y(origin.y as i32);
+
+        return &self.background;
     }
 
     pub fn update(

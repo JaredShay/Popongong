@@ -65,6 +65,7 @@ fn main() {
     );
 
     let texture_creator = canvas.texture_creator();
+
     let mut texture = texture_creator.create_texture_streaming(
         PixelFormatEnum::RGB24, PADDLE_WIDTH as u32, PADDLE_HEIGHT as u32).unwrap();
 
@@ -81,6 +82,24 @@ fn main() {
         for el in 0..((PADDLE_WIDTH * PADDLE_HEIGHT * 3) as usize) {
             buffer[el] = 0;
         }
+    }).unwrap();
+
+    let mut red = texture_creator.create_texture_streaming(
+        PixelFormatEnum::RGB24, 1, 1).unwrap();
+
+    red.with_lock(None, |buffer: &mut [u8], _| {
+        buffer[0] = 255;
+        buffer[1] = 0;
+        buffer[2] = 0;
+    }).unwrap();
+
+    let mut green = texture_creator.create_texture_streaming(
+        PixelFormatEnum::RGB24, 1, 1).unwrap();
+
+    green.with_lock(None, |buffer: &mut [u8], _| {
+        buffer[0] = 0;
+        buffer[1] = 255;
+        buffer[2] = 0;
     }).unwrap();
 
     let mut outer_game = Game::new(1);
@@ -136,9 +155,11 @@ fn main() {
 
     // Initial render
     canvas.clear();
+    canvas.copy(&red, None, *outer_game.background(&outer_origin)).unwrap();
     canvas.copy(&texture, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
     canvas.copy(&texture, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
 
+    canvas.copy(&green, None, *inner_game.background(&outer_game.ball.pos)).unwrap();
     canvas.copy(&texture, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
     canvas.copy(&texture, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
 
@@ -184,9 +205,11 @@ fn main() {
         // Texture, source, destination.
         //
         // Passing source of None means the entire texture is copied
+        canvas.copy(&red, None, *outer_game.background(&outer_origin)).unwrap();
         canvas.copy(&texture, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
         canvas.copy(&texture, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
 
+        canvas.copy(&green, None, *inner_game.background(&outer_game.ball.pos)).unwrap();
         canvas.copy(&texture, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
         canvas.copy(&texture, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
 
