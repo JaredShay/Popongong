@@ -9,16 +9,7 @@ use vector::Vector;
 
 use component::{Paddle, Ball};
 
-use constants::{
-    WINDOW_WIDTH,
-    WINDOW_HEIGHT,
-    PADDLE_WIDTH,
-    PADDLE_HEIGHT,
-    PADDLE_SEGMENT,
-    BALL_WIDTH,
-    BALL_HEIGHT,
-    MAX_BALL_SPEED,
-};
+use constants::Constants as Constants;
 
 #[derive(Debug, PartialEq)]
 pub enum GameStates {
@@ -34,93 +25,27 @@ pub struct Game {
     pub paddle_two: Paddle,
     pub ball: Ball,
     pub state: GameStates,
+    constants: Constants,
     scale: i32
 }
 
-fn ball_collides_with_paddle_one(ball: &Ball, paddle_one: &Paddle) -> bool {
-    ball.is_moving_left() &&
-        ball.left_edge() <= paddle_one.right_edge() &&
-        ball_within_paddle_collision_range(&ball, &paddle_one)
-}
-
-fn ball_collides_with_paddle_two(ball: &Ball, paddle_two: &Paddle) -> bool {
-    ball.is_moving_right() &&
-        ball.right_edge() >= WINDOW_WIDTH - paddle_two.width as i32 &&
-        ball_within_paddle_collision_range(&ball, &paddle_two)
-}
-
-fn ball_within_paddle_collision_range(ball: &Ball, paddle: &Paddle) -> bool {
-    ball.bottom_edge() >= paddle.top_edge() &&
-        ball.top_edge() <= paddle.bottom_edge()
-}
-
-fn ball_collides_with_top(ball: &Ball) -> bool {
-    ball.is_moving_up() && ball.top_edge() <= 0
-}
-
-fn ball_collides_with_bottom(ball: &Ball, scale: i32) -> bool {
-    ball.is_moving_down() && ball.bottom_edge() >= WINDOW_HEIGHT / scale
-}
-
-fn ball_collides_with_left(ball: &Ball) -> bool {
-    ball.is_moving_left() && ball.left_edge() <= 0
-}
-
-fn ball_collides_with_right(ball: &Ball, scale: i32) -> bool {
-    ball.is_moving_right() && ball.right_edge() >= WINDOW_WIDTH / scale
-}
-
-// TODO: A nice enhancment here would be to factor in paddle velocity. If
-// the paddle is stationary don't apply any modification.
-fn vel_modifier(distance: f64, paddle: &Paddle) -> f64 {
-    distance / paddle.height as f64 / 2.0 * MAX_BALL_SPEED
-}
-
-fn ball_collides_with_paddle_extremity(distance: f64, scale: i32) -> bool {
-    distance as i32 > (PADDLE_SEGMENT * 2) / scale
-}
-
-fn ball_moves_into_bottom_half(ball: &Ball, paddle: &Paddle) -> bool {
-    ball.is_moving_up() && ball.top_edge() > paddle.center().y as i32
-}
-
-fn ball_moves_into_top_half(ball: &Ball, paddle: &Paddle) -> bool {
-    ball.is_moving_down() && ball.bottom_edge() < paddle.center().y as i32
-}
-
-fn handle_ball_paddle_collision(ball: &mut Ball, paddle: &Paddle, scale: i32) {
-    let collision_distance = ball.distance_to(&paddle).y.abs();
-
-    if ball_collides_with_paddle_extremity(collision_distance, scale) &&
-        ball_moves_into_bottom_half(&ball, &paddle) ||
-        ball_moves_into_top_half(&ball, &paddle) {
-
-        ball.flip_y();
-    }
-
-    ball.set_velocity_y_magnitude(
-        vel_modifier(collision_distance, &paddle)
-    );
-
-    ball.flip_x();
-}
 
 impl Game {
-    pub fn new(scale: i32) -> Game {
+    pub fn new(scale: i32, constants: Constants) -> Game {
         let paddle_one = Paddle::new(
             Vector { x: 0.0, y: 0.0 },
-            (PADDLE_WIDTH / scale) as u32,
-            (PADDLE_HEIGHT / scale) as u32,
+            constants.paddle_width as u32,
+            constants.paddle_height as u32,
             0.5
         );
 
         let paddle_two = Paddle::new(
             Vector {
-                x: (WINDOW_WIDTH / scale - PADDLE_WIDTH / scale) as f64,
+                x: (constants.window_width - constants.paddle_width) as f64,
                 y: 0.0
             },
-            (PADDLE_WIDTH / scale) as u32,
-            (PADDLE_HEIGHT / scale) as u32,
+            constants.paddle_width as u32,
+            constants.paddle_height as u32,
             0.5
         );
 
@@ -128,20 +53,26 @@ impl Game {
         // Pick random point on screen
         // Calc norm vector from ball
         // Multiple by some speed multiplier
-        let target = Vector { x: 0.0, y: (WINDOW_WIDTH / scale) as f64 / 2.0 };
+        let target = Vector { x: 0.0, y: constants.window_width as f64 / 2.0 };
+
+        let ball_x = constants.window_width / 2 - constants.ball_width / 2;
+        let ball_y = constants.window_height / 2 - constants.ball_height / 2;
 
         let ball_starting_pos = Vector {
-                x: ((WINDOW_WIDTH / scale) as f64) / 2.0 - ((BALL_WIDTH / scale) as f64)  / 2.0,
-                y: ((WINDOW_HEIGHT / scale) as f64) / 2.0 -( (BALL_HEIGHT / scale) as f64) / 2.0
+                x: ball_x as f64,
+                y: ball_y as f64,
             };
 
         // TODO: 0.4 is just magic to make the init velocity feel right.
-        let ball_velocity = target.subtract(&ball_starting_pos).normalize().product(0.4);
+        let ball_velocity = target
+            .subtract(&ball_starting_pos)
+            .normalize()
+            .product(0.4);
 
         let ball = Ball::new(
             ball_starting_pos,
-            (BALL_WIDTH / scale) as u32,
-            (BALL_HEIGHT / scale) as u32,
+            constants.ball_width as u32,
+            constants.ball_height as u32,
             ball_velocity
         );
 
@@ -149,14 +80,15 @@ impl Game {
             background: Rect::new(
                 0,
                 0,
-                WINDOW_WIDTH as u32 / scale as u32,
-                WINDOW_HEIGHT as u32 / scale as u32
+                constants.window_width as u32,
+                constants.window_height as u32,
             ),
             paddle_one: paddle_one,
             paddle_two: paddle_two,
             ball: ball,
             state: GameStates::Paused,
-            scale: scale
+            scale: scale,
+            constants: constants,
         }
     }
 
@@ -185,7 +117,7 @@ impl Game {
                     Keycode::Down => {
                         self.paddle_two.down(
                             delta_ms,
-                            (WINDOW_HEIGHT / self.scale) as f64
+                            (self.constants.window_height) as f64
                         );
                     },
                     Keycode::W => {
@@ -194,7 +126,7 @@ impl Game {
                     Keycode::S => {
                         self.paddle_one.down(
                             delta_ms,
-                            (WINDOW_HEIGHT / self.scale) as f64
+                            self.constants.window_height as f64
                         );
                     },
                     _ => {}
@@ -204,24 +136,95 @@ impl Game {
             self.ball.update(delta_ms);
 
             // Edge collisions
-            if ball_collides_with_top(&self.ball) ||
-                ball_collides_with_bottom(&self.ball, self.scale) {
+            if self.ball_collides_with_top() || self.ball_collides_with_bottom() {
                 self.ball.flip_y();
             }
 
-            if ball_collides_with_left(&self.ball) ||
-                ball_collides_with_right(&self.ball, self.scale) {
+            if self.ball_collides_with_left() || self.ball_collides_with_right() {
                 self.ball.flip_x();
             }
 
-            //  Paddle one collision
-            if ball_collides_with_paddle_one(&self.ball, &self.paddle_one) {
-                handle_ball_paddle_collision(&mut self.ball, &self.paddle_one, self.scale);
+            if self.ball_collides_with_paddle_one() {
+                let collision_distance = self.ball.distance_to(&self.paddle_one).y.abs();
+                let new_velocity = self.vel_modifier(collision_distance);
+
+                if self.ball_collides_with_paddle_extremity(collision_distance) &&
+                    self.ball_moves_into_bottom_half(&self.paddle_one) ||
+                    self.ball_moves_into_top_half(&self.paddle_one) {
+
+                    self.ball.flip_y();
+                }
+
+                self.ball.set_velocity_y_magnitude(new_velocity);
+                self.ball.flip_x();
             }
 
-            if ball_collides_with_paddle_two(&self.ball, &self.paddle_two) {
-                handle_ball_paddle_collision(&mut self.ball, &self.paddle_two, self.scale);
+            if self.ball_collides_with_paddle_two() {
+                let collision_distance = self.ball.distance_to(&self.paddle_two).y.abs();
+                let new_velocity = self.vel_modifier(collision_distance);
+
+                if self.ball_collides_with_paddle_extremity(collision_distance) &&
+                    self.ball_moves_into_bottom_half(&self.paddle_two) ||
+                    self.ball_moves_into_top_half(&self.paddle_two) {
+
+                    self.ball.flip_y();
+                }
+
+                self.ball.set_velocity_y_magnitude(new_velocity);
+                self.ball.flip_x();
             }
         }
+    }
+
+    fn ball_collides_with_paddle_one(&self) -> bool {
+        self.ball.is_moving_left() &&
+            self.ball.left_edge() <= self.paddle_one.right_edge() &&
+            self.ball_within_paddle_collision_range(&self.paddle_one)
+    }
+
+    fn ball_collides_with_paddle_two(&self) -> bool {
+        self.ball.is_moving_right() &&
+            self.ball.right_edge() >= self.constants.window_width - self.paddle_two.width as i32 &&
+            self.ball_within_paddle_collision_range(&self.paddle_two)
+    }
+
+    fn ball_within_paddle_collision_range(&self, paddle: &Paddle) -> bool {
+        self.ball.bottom_edge() >= paddle.top_edge() &&
+            self.ball.top_edge() <= paddle.bottom_edge()
+    }
+
+    fn ball_collides_with_top(&self) -> bool {
+        self.ball.is_moving_up() && self.ball.top_edge() <= 0
+    }
+
+    fn ball_collides_with_bottom(&self) -> bool {
+        self.ball.is_moving_down() && self.ball.bottom_edge() >= self.constants.window_height
+    }
+
+    fn ball_collides_with_left(&self) -> bool {
+        self.ball.is_moving_left() && self.ball.left_edge() <= 0
+    }
+
+    fn ball_collides_with_right(&self) -> bool {
+        self.ball.is_moving_right() && self.ball.right_edge() >= self.constants.window_width
+    }
+
+    // TODO: A nice enhancment here would be to factor in paddle velocity. If
+    // the paddle is stationary don't apply any modification.
+    fn vel_modifier(&self, distance: f64) -> f64 {
+        distance / self.constants.paddle_height as f64 / 2.0 * self.constants.max_ball_speed
+    }
+
+    fn ball_collides_with_paddle_extremity(&self, distance: f64) -> bool {
+        // Edge 2/6th of the paddle
+        distance as i32 > (self.constants.paddle_segment * 2)
+    }
+
+    fn ball_moves_into_bottom_half(&self, paddle: &Paddle) -> bool {
+        self.ball.is_moving_up() && self.ball.top_edge() > paddle.center().y as i32
+    }
+
+    fn ball_moves_into_top_half(&self, paddle: &Paddle) -> bool {
+        self.ball.is_moving_down() && self.ball.bottom_edge() < paddle.center().y as i32
     }
 }

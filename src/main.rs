@@ -17,13 +17,7 @@ mod game;
 use game::{Game};
 
 mod constants;
-use constants::{
-    WINDOW_WIDTH,
-    WINDOW_HEIGHT,
-    PADDLE_WIDTH,
-    PADDLE_HEIGHT,
-    BACKGROUND_COLOR
-};
+use constants::{OUTER_CONSTANTS, INNER_CONSTANTS, BACKGROUND_COLOR};
 
 fn main() {
     // Create an OpenGl context.
@@ -39,8 +33,8 @@ fn main() {
 
     let window = video_subsystem.window(
         "Popongong",
-        WINDOW_WIDTH as u32,
-        WINDOW_HEIGHT as u32
+        OUTER_CONSTANTS.window_width as u32,
+        OUTER_CONSTANTS.window_height as u32
     )
         .position_centered()
         .opengl()
@@ -66,22 +60,13 @@ fn main() {
 
     let texture_creator = canvas.texture_creator();
 
-    let mut texture = texture_creator.create_texture_streaming(
-        PixelFormatEnum::RGB24, PADDLE_WIDTH as u32, PADDLE_HEIGHT as u32).unwrap();
+    let mut black = texture_creator.create_texture_streaming(
+        PixelFormatEnum::RGB24, 1, 1).unwrap();
 
-    // lock texture to perform direct pixel writes. If this recalculation is
-    // heavy consider caching where possible or moving the logic to a shader.
-    // Using a shader will allow the graphics card to do the heavy lifting but
-    // will be harder to make portable.
-    //
-    // This is a one time operation outside of the main loop so this is fine.
-    //
-    // The second argument to the supplied closure here is `pitch` which I
-    // believe is "the length of a row of pixels in bytes".
-    texture.with_lock(None, |buffer: &mut [u8], _| {
-        for el in 0..((PADDLE_WIDTH * PADDLE_HEIGHT * 3) as usize) {
-            buffer[el] = 0;
-        }
+    black.with_lock(None, |buffer: &mut [u8], _| {
+        buffer[0] = 0;
+        buffer[1] = 0;
+        buffer[2] = 0;
     }).unwrap();
 
     let mut red = texture_creator.create_texture_streaming(
@@ -102,8 +87,8 @@ fn main() {
         buffer[2] = 0;
     }).unwrap();
 
-    let mut outer_game = Game::new(1);
-    let mut inner_game = Game::new(4);
+    let mut outer_game = Game::new(1, OUTER_CONSTANTS);
+    let mut inner_game = Game::new(4, INNER_CONSTANTS);
 
     // Get a reference to the SDL "event pump".
     //
@@ -156,14 +141,14 @@ fn main() {
     // Initial render
     canvas.clear();
     canvas.copy(&red, None, *outer_game.background(&outer_origin)).unwrap();
-    canvas.copy(&texture, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
-    canvas.copy(&texture, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
+    canvas.copy(&black, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
+    canvas.copy(&black, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
 
     canvas.copy(&green, None, *inner_game.background(&outer_game.ball.pos)).unwrap();
-    canvas.copy(&texture, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
-    canvas.copy(&texture, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
+    canvas.copy(&black, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
+    canvas.copy(&black, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
 
-    canvas.copy(&texture, None, *inner_game.ball.sdl_rect(&outer_game.ball.pos)).unwrap();
+    canvas.copy(&black, None, *inner_game.ball.sdl_rect(&outer_game.ball.pos)).unwrap();
     canvas.present();
 
     let mut delta_ms: u64;
@@ -192,10 +177,8 @@ fn main() {
 
         outer_game.update(&keys_pressed, delta_ms);
         inner_game.update(&keys_pressed, delta_ms);
-        //for component in &outer_game.components {
-        //    //render components with 0,0 origin
-        //}
 
+        //for component in &outer_game.components {
         // render
         //
         // This should be implemented by looping over all game elements that
@@ -206,14 +189,14 @@ fn main() {
         //
         // Passing source of None means the entire texture is copied
         canvas.copy(&red, None, *outer_game.background(&outer_origin)).unwrap();
-        canvas.copy(&texture, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
-        canvas.copy(&texture, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
+        canvas.copy(&black, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
+        canvas.copy(&black, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
 
         canvas.copy(&green, None, *inner_game.background(&outer_game.ball.pos)).unwrap();
-        canvas.copy(&texture, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
-        canvas.copy(&texture, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
+        canvas.copy(&black, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
+        canvas.copy(&black, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
 
-        canvas.copy(&texture, None, *inner_game.ball.sdl_rect(&outer_game.ball.pos)).unwrap();
+        canvas.copy(&black, None, *inner_game.ball.sdl_rect(&outer_game.ball.pos)).unwrap();
         canvas.present();
 
         // Update time. Conceptually easier for me to see this here
