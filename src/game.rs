@@ -9,7 +9,7 @@ use vector::Vector;
 
 use component::{Paddle, Ball};
 
-use constants::Constants as Constants;
+use constants::{Color, Constants};
 
 #[derive(Debug, PartialEq)]
 pub enum GameStates {
@@ -29,14 +29,14 @@ pub struct Game {
     scale: i32
 }
 
-
 impl Game {
     pub fn new(scale: i32, constants: Constants) -> Game {
         let paddle_one = Paddle::new(
             Vector { x: 0.0, y: 0.0 },
             constants.paddle_width as u32,
             constants.paddle_height as u32,
-            0.5
+            0.5,
+            Color::Black,
         );
 
         let paddle_two = Paddle::new(
@@ -46,7 +46,8 @@ impl Game {
             },
             constants.paddle_width as u32,
             constants.paddle_height as u32,
-            0.5
+            0.5,
+            Color::Black,
         );
 
         // calculate starting velocity
@@ -73,7 +74,8 @@ impl Game {
             ball_starting_pos,
             constants.ball_width as u32,
             constants.ball_height as u32,
-            ball_velocity
+            ball_velocity,
+            Color::Black
         );
 
         Game {

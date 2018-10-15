@@ -1,5 +1,13 @@
 pub const BACKGROUND_COLOR: (u8, u8, u8) = (255, 255, 255); // white
 
+#[derive(Debug, PartialEq)]
+pub enum Color {
+    Red,
+    Green,
+    Blue,
+    Black,
+}
+
 #[derive(Debug)]
 pub struct Constants {
     pub window_width: i32,

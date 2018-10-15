@@ -3,6 +3,8 @@ use sdl2::rect::Rect;
 
 use vector::Vector;
 
+use constants::{Color};
+
 #[derive(Debug)]
 pub struct Ball {
     pub pos: Vector,
@@ -10,10 +12,11 @@ pub struct Ball {
     pub height: u32,
     pub velocity: Vector,
     pub rect: Rect,
+    pub color: Color,
 }
 
 impl Ball {
-    pub fn new(pos: Vector, width: u32, height: u32, velocity: Vector) -> Ball {
+    pub fn new(pos: Vector, width: u32, height: u32, velocity: Vector, color: Color) -> Ball {
         return Ball {
             pos: pos.clone(),
             width: width,
@@ -24,6 +27,7 @@ impl Ball {
                 width,
                 height
             ),
+            color: color,
             velocity: velocity,
         }
     }
@@ -122,16 +126,18 @@ pub struct Paddle {
     pub height: u32,
     pub velocity: Vector,
     pub rect: Rect,
+    pub color: Color,
 }
 
 impl Paddle {
-    pub fn new(pos: Vector, width: u32, height: u32, speed: f64) -> Paddle {
+    pub fn new(pos: Vector, width: u32, height: u32, speed: f64, color: Color) -> Paddle {
         return Paddle {
             pos: pos.clone(),
             width: width,
             height: height,
             rect: Rect::new(pos.x as i32, pos.y as i32, width, height),
-            velocity: Vector { x: 0.0, y: speed }
+            velocity: Vector { x: 0.0, y: speed },
+            color: color,
         };
     }
 
