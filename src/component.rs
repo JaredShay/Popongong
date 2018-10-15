@@ -6,6 +6,35 @@ use vector::Vector;
 use constants::{Color};
 
 #[derive(Debug)]
+pub enum Components <'a> {
+    Paddle(&'a mut Paddle),
+    Ball(&'a mut Ball),
+    Background(&'a mut Background),
+}
+
+#[derive(Debug)]
+pub struct Background {
+    pub rect: Rect,
+    pub color: Color,
+}
+
+impl Background {
+    pub fn new(width: i32, height: i32, color: Color) -> Background {
+        Background {
+            rect: Rect::new(0, 0, width as u32, height as u32,),
+            color: color
+        }
+    }
+
+    pub fn sdl_rect(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
+        self.rect.set_x(origin.x as i32);
+        self.rect.set_y(origin.y as i32);
+
+        return &self.rect;
+    }
+}
+
+#[derive(Debug)]
 pub struct Ball {
     pub pos: Vector,
     pub width: u32,

@@ -1,13 +1,12 @@
 extern crate sdl2;
 
 use sdl2::keyboard::Keycode;
-use sdl2::rect::Rect;
 
 use std::collections::HashMap;
 
 use vector::Vector;
 
-use component::{Paddle, Ball};
+use component::{Paddle, Ball, Background, Components};
 
 use constants::{Color, Constants};
 
@@ -20,17 +19,16 @@ pub enum GameStates {
 
 #[derive(Debug)]
 pub struct Game {
-    pub background: Rect,
+    pub background: Background,
     pub paddle_one: Paddle,
     pub paddle_two: Paddle,
     pub ball: Ball,
     pub state: GameStates,
     constants: Constants,
-    scale: i32
 }
 
 impl Game {
-    pub fn new(scale: i32, constants: Constants) -> Game {
+    pub fn new(constants: Constants) -> Game {
         let paddle_one = Paddle::new(
             Vector { x: 0.0, y: 0.0 },
             constants.paddle_width as u32,
@@ -78,18 +76,16 @@ impl Game {
             Color::Black
         );
 
+        let background = Background::new(
+            constants.window_width, constants.window_height, Color::White
+        );
+
         Game {
-            background: Rect::new(
-                0,
-                0,
-                constants.window_width as u32,
-                constants.window_height as u32,
-            ),
+            background: background,
             paddle_one: paddle_one,
             paddle_two: paddle_two,
             ball: ball,
             state: GameStates::Paused,
-            scale: scale,
             constants: constants,
         }
     }
@@ -98,11 +94,13 @@ impl Game {
         self.state = GameStates::Playing;
     }
 
-    pub fn background(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
-        self.background.set_x(origin.x as i32);
-        self.background.set_y(origin.y as i32);
-
-        return &self.background;
+    pub fn components(&mut self) -> Vec<Components> {
+        vec![
+            Components::Background(&mut self.background),
+            Components::Paddle(&mut self.paddle_one),
+            Components::Paddle(&mut self.paddle_two),
+            Components::Ball(&mut self.ball),
+        ]
     }
 
     pub fn update(
@@ -134,6 +132,14 @@ impl Game {
                     _ => {}
                 }
             }
+
+            // Collisions
+            // - ball_top_screen_edge
+            // - ball_bottom_screen_edge
+            // - ball_left_screen_edge
+            // - ball_right_screen_edge
+            // - ball_paddle_one
+            // - ball_paddle_two
 
             self.ball.update(delta_ms);
 

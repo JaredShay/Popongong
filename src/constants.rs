@@ -1,11 +1,10 @@
-pub const BACKGROUND_COLOR: (u8, u8, u8) = (255, 255, 255); // white
-
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Color {
     Red,
     Green,
     Blue,
     Black,
+    White,
 }
 
 #[derive(Debug)]

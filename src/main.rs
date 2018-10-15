@@ -1,15 +1,12 @@
 extern crate sdl2;
 
-use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::PixelFormatEnum;
 
 use std::collections::HashMap;
 use std::time::{Instant};
 
 mod vector;
-use vector::Vector;
 
 mod component;
 
@@ -17,7 +14,13 @@ mod game;
 use game::{Game};
 
 mod constants;
-use constants::{OUTER_CONSTANTS, INNER_CONSTANTS, BACKGROUND_COLOR};
+use constants::{OUTER_CONSTANTS, INNER_CONSTANTS};
+
+mod render;
+use render::render;
+
+mod textures;
+use textures::init_textures;
 
 fn main() {
     // Create an OpenGl context.
@@ -51,44 +54,11 @@ fn main() {
         .build()
         .unwrap();
 
-    // This looks like garbage. Tuple splatting doesn't exist. Fun to say though
-    canvas.set_draw_color(
-        Color::RGB(
-            BACKGROUND_COLOR.0, BACKGROUND_COLOR.1, BACKGROUND_COLOR.2
-        )
-    );
-
     let texture_creator = canvas.texture_creator();
+    let textures = init_textures(&texture_creator);
 
-    let mut black = texture_creator.create_texture_streaming(
-        PixelFormatEnum::RGB24, 1, 1).unwrap();
-
-    black.with_lock(None, |buffer: &mut [u8], _| {
-        buffer[0] = 0;
-        buffer[1] = 0;
-        buffer[2] = 0;
-    }).unwrap();
-
-    let mut red = texture_creator.create_texture_streaming(
-        PixelFormatEnum::RGB24, 1, 1).unwrap();
-
-    red.with_lock(None, |buffer: &mut [u8], _| {
-        buffer[0] = 255;
-        buffer[1] = 0;
-        buffer[2] = 0;
-    }).unwrap();
-
-    let mut green = texture_creator.create_texture_streaming(
-        PixelFormatEnum::RGB24, 1, 1).unwrap();
-
-    green.with_lock(None, |buffer: &mut [u8], _| {
-        buffer[0] = 0;
-        buffer[1] = 255;
-        buffer[2] = 0;
-    }).unwrap();
-
-    let mut outer_game = Game::new(1, OUTER_CONSTANTS);
-    let mut inner_game = Game::new(4, INNER_CONSTANTS);
+    let mut outer_game = Game::new(OUTER_CONSTANTS);
+    let mut inner_game = Game::new(INNER_CONSTANTS);
 
     // Get a reference to the SDL "event pump".
     //
@@ -136,20 +106,7 @@ fn main() {
         duration.as_secs() * 1000 + duration.subsec_millis() as u64
     }
 
-    let outer_origin = Vector { x: 0.0, y: 0.0 };
-
-    // Initial render
-    canvas.clear();
-    canvas.copy(&red, None, *outer_game.background(&outer_origin)).unwrap();
-    canvas.copy(&black, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
-    canvas.copy(&black, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
-
-    canvas.copy(&green, None, *inner_game.background(&outer_game.ball.pos)).unwrap();
-    canvas.copy(&black, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
-    canvas.copy(&black, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
-
-    canvas.copy(&black, None, *inner_game.ball.sdl_rect(&outer_game.ball.pos)).unwrap();
-    canvas.present();
+    render(&mut outer_game, &mut inner_game, &textures, &mut canvas);
 
     let mut delta_ms: u64;
     let mut prev_time = Instant::now();
@@ -178,26 +135,7 @@ fn main() {
         outer_game.update(&keys_pressed, delta_ms);
         inner_game.update(&keys_pressed, delta_ms);
 
-        //for component in &outer_game.components {
-        // render
-        //
-        // This should be implemented by looping over all game elements that
-        // can be copied to the canvas, performing a copy if they are updated,
-        // then calling render
-        canvas.clear();
-        // Texture, source, destination.
-        //
-        // Passing source of None means the entire texture is copied
-        canvas.copy(&red, None, *outer_game.background(&outer_origin)).unwrap();
-        canvas.copy(&black, None, *outer_game.paddle_one.sdl_rect(&outer_origin)).unwrap();
-        canvas.copy(&black, None, *outer_game.paddle_two.sdl_rect(&outer_origin)).unwrap();
-
-        canvas.copy(&green, None, *inner_game.background(&outer_game.ball.pos)).unwrap();
-        canvas.copy(&black, None, *inner_game.paddle_one.sdl_rect(&outer_game.ball.pos)).unwrap();
-        canvas.copy(&black, None, *inner_game.paddle_two.sdl_rect(&outer_game.ball.pos)).unwrap();
-
-        canvas.copy(&black, None, *inner_game.ball.sdl_rect(&outer_game.ball.pos)).unwrap();
-        canvas.present();
+        render(&mut outer_game, &mut inner_game, &textures, &mut canvas);
 
         // Update time. Conceptually easier for me to see this here
         prev_time = curr_time;
