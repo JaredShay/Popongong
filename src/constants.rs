@@ -1,10 +1,11 @@
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Color {
     Red,
     Green,
     Blue,
     Black,
     White,
+    Purple,
 }
 
 #[derive(Debug)]
@@ -18,6 +19,7 @@ pub struct Constants {
     pub ball_width: i32,
     pub ball_height: i32,
     pub max_ball_speed: f64,
+    pub ball_color: Color,
 }
 
 pub const OUTER_CONSTANTS: Constants = Constants {
@@ -27,14 +29,15 @@ pub const OUTER_CONSTANTS: Constants = Constants {
     paddle_height: 360,
     paddle_segment: 60,
     max_paddle_speed: 0.5,
-    ball_width: 600,
-    ball_height: 400,
+    ball_width: 610,
+    ball_height: 410,
     max_ball_speed: 1.5,
+    ball_color: Color::Purple,
 };
 
 pub const INNER_CONSTANTS: Constants = Constants {
-    window_width: OUTER_CONSTANTS.ball_width,
-    window_height: OUTER_CONSTANTS.ball_height,
+    window_width: 600,
+    window_height: 400,
     paddle_width: 30,
     paddle_height: 120,
     paddle_segment: 15,
@@ -42,4 +45,5 @@ pub const INNER_CONSTANTS: Constants = Constants {
     ball_width: 75,
     ball_height: 75,
     max_ball_speed: 1.0,
+    ball_color: Color::Black,
 };

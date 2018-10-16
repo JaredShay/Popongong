@@ -38,8 +38,10 @@ impl Game {
         );
 
         let paddle_two = Paddle::new(
+            // TODO: There is somehow an "off by 5 error" in my math here. Not
+            // really sure how. But just hard coding a + 5.0 here to fix it...
             Vector {
-                x: (constants.window_width - constants.paddle_width) as f64,
+                x: (constants.window_width - constants.paddle_width) as f64 + 5.0,
                 y: 0.0
             },
             constants.paddle_width as u32,
@@ -73,7 +75,7 @@ impl Game {
             constants.ball_width as u32,
             constants.ball_height as u32,
             ball_velocity,
-            Color::Black
+            constants.ball_color.clone()
         );
 
         let background = Background::new(
@@ -101,6 +103,14 @@ impl Game {
             Components::Paddle(&mut self.paddle_two),
             Components::Ball(&mut self.ball),
         ]
+    }
+
+    pub fn play_pause(&mut self) -> () {
+        if self.state == GameStates::Paused {
+            self.state = GameStates::Playing;
+        } else {
+            self.state = GameStates::Paused;
+        }
     }
 
     pub fn update(

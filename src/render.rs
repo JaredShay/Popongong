@@ -43,8 +43,8 @@ pub fn render(
     }
 
     let inner_origin = Vector {
-        x: outer_game.ball.pos.x,
-        y: outer_game.ball.pos.y,
+        x: outer_game.ball.pos.x + 5.0,
+        y: outer_game.ball.pos.y + 5.0,
     };
 
     for component in inner_game.components().iter_mut() {

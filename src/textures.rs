@@ -14,6 +14,7 @@ pub fn init_textures<'a>(
     let red = create_texture(&creator, 255, 0, 0);
     let green = create_texture(&creator, 0, 255, 0);
     let blue = create_texture(&creator, 0, 0, 255);
+    let purple = create_texture(&creator, 164, 66, 244);
 
     let mut textures = HashMap::new();
 
@@ -22,6 +23,7 @@ pub fn init_textures<'a>(
     textures.insert(constants::Color::Red, red);
     textures.insert(constants::Color::Green, green);
     textures.insert(constants::Color::Blue, blue);
+    textures.insert(constants::Color::Purple, purple);
 
     return textures;
 }

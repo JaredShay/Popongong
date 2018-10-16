@@ -125,6 +125,10 @@ fn main() {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'main
                 },
+                Event::KeyDown { keycode: Some(Keycode::Space), .. } => {
+                    outer_game.play_pause();
+                    inner_game.play_pause();
+                },
                 Event::KeyDown { .. } | Event::KeyUp { .. } => {
                     handle_key_press_events(event, &mut keys_pressed);
                 }

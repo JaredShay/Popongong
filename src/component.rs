@@ -21,7 +21,7 @@ pub struct Background {
 impl Background {
     pub fn new(width: i32, height: i32, color: Color) -> Background {
         Background {
-            rect: Rect::new(0, 0, width as u32, height as u32,),
+            rect: Rect::new(0, 0, width as u32, height as u32),
             color: color
         }
     }
@@ -154,7 +154,8 @@ pub struct Paddle {
     pub width: u32,
     pub height: u32,
     pub velocity: Vector,
-    pub rect: Rect,
+    pub background: Rect,
+    pub border: Rect,
     pub color: Color,
 }
 
@@ -164,7 +165,8 @@ impl Paddle {
             pos: pos.clone(),
             width: width,
             height: height,
-            rect: Rect::new(pos.x as i32, pos.y as i32, width, height),
+            background: Rect::new(pos.x as i32, pos.y as i32, width - 5, height - 5),
+            border: Rect::new(pos.x as i32, pos.y as i32, width, height),
             velocity: Vector { x: 0.0, y: speed },
             color: color,
         };
@@ -183,10 +185,10 @@ impl Paddle {
     }
 
     pub fn sdl_rect(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
-        self.rect.set_x(self.pos.x as i32 + origin.x as i32);
-        self.rect.set_y(self.pos.y as i32 + origin.y as i32);
+        self.background.set_x(self.pos.x as i32 + origin.x as i32);
+        self.background.set_y(self.pos.y as i32 + origin.y as i32);
 
-        return &self.rect;
+        return &self.background;
     }
 
     pub fn up(&mut self, delta_ms: u64, limit: f64) -> () {
@@ -205,10 +207,10 @@ impl Paddle {
     pub fn down(&mut self, delta_ms: u64, limit: f64) -> () {
         let step_size = delta_ms as f64 * self.velocity.y;
 
-        if (self.pos.y + self.height as f64 + step_size) <= limit {
+        if (self.pos.y + self.height as f64 + step_size) <= limit + 5.0 {
             self.pos.y = self.pos.y + step_size;
         } else {
-            self.pos.y = limit - self.height as f64;
+            self.pos.y = limit - self.height as f64 + 5.0;
         }
     }
 
