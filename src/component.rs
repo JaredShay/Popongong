@@ -133,10 +133,14 @@ pub struct Paddle {
     pub border: Rect,
     pub border_color: Color,
     pub background_color: Color,
+    pub segments: [(sdl2::rect::Rect, Color); 6],
+    pub hits: u8,
 }
 
 impl Paddle {
     pub fn new(pos: Vector, width: u32, height: u32, speed: f64, color: Color) -> Paddle {
+        let segment_height = (height - 10) / 5;
+
         return Paddle {
             pos: pos.clone(),
             width: width,
@@ -144,8 +148,17 @@ impl Paddle {
             background: Rect::new(pos.x as i32, pos.y as i32, width - 10, height - 10),
             border: Rect::new(pos.x as i32, pos.y as i32, width, height),
             velocity: Vector { x: 0.0, y: speed },
-            border_color: color,
+            border_color: color.clone(),
             background_color: Color::White,
+            segments: [
+                (Rect::new(0, 0, width - 10, segment_height), color.clone()),
+                (Rect::new(0, 0, width - 10, segment_height), color.clone()),
+                (Rect::new(0, 0, width - 10, segment_height), color.clone()),
+                (Rect::new(0, 0, width - 10, segment_height), color.clone()),
+                (Rect::new(0, 0, width - 10, segment_height), color.clone()),
+                (Rect::new(0, 0, width - 10, segment_height), color.clone()),
+            ],
+            hits: 0,
         };
     }
 
@@ -161,17 +174,43 @@ impl Paddle {
         Vector { x: self.pos.x + self.width as f64 / 2.0, y: self.pos.y + self.height as f64 / 2.0 }
     }
 
+    pub fn hit(&mut self) -> () {
+        if self.hits < 5 {
+            self.hits = self.hits + 1;
+        }
+    }
+
+    pub fn miss(&mut self) -> () {
+        if self.hits > 0 {
+            self.hits = self.hits - 1;
+        }
+    }
+
     pub fn components(&mut self, origin: &Vector) -> Vec<Component> {
+        let segment_height = (self.height - 10) / 5;
+
         self.background.set_x((self.pos.x + origin.x + 5.0) as i32);
         self.background.set_y((self.pos.y + origin.y + 5.0) as i32);
 
         self.border.set_x((self.pos.x + origin.x) as i32);
         self.border.set_y((self.pos.y + origin.y) as i32);
 
-        return vec![
+        let mut components = vec![
             (&self.border, &self.border_color),
             (&self.background, &self.background_color),
         ];
+
+        for i in 0..self.hits {
+            self.segments[i as usize].0.set_x((self.pos.x + origin.x + 5.0) as i32);
+            self.segments[i as usize].0.set_y((self.pos.y + (self.height - segment_height * (i as u32 + 1)) as f64 + origin.y - 5.0) as i32);
+
+        }
+
+        for i in 0..self.hits {
+            components.push((&self.segments[i as usize].0, &self.segments[i as usize].1));
+        }
+
+        return components;
     }
 
     pub fn up(&mut self, delta_ms: u64, limit: f64) -> () {

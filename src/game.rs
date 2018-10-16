@@ -36,7 +36,7 @@ impl Game {
             constants.paddle_width as u32,
             constants.paddle_height as u32,
             0.5,
-            Color::Red,
+            Color::Green,
         );
 
         let paddle_two = Paddle::new(
@@ -47,7 +47,7 @@ impl Game {
             constants.paddle_width as u32,
             constants.paddle_height as u32,
             0.5,
-            Color::Red,
+            Color::Green,
         );
 
         // calculate starting velocity
@@ -161,8 +161,14 @@ impl Game {
                 self.ball.flip_y();
             }
 
-            if self.ball_collides_with_left() || self.ball_collides_with_right() {
+            if self.ball_collides_with_left() {
                 self.ball.flip_x();
+                self.paddle_one.miss();
+            }
+
+            if self.ball_collides_with_right() {
+                self.ball.flip_x();
+                self.paddle_two.miss();
             }
 
             if self.ball_collides_with_paddle_one() {
@@ -178,6 +184,7 @@ impl Game {
 
                 self.ball.set_velocity_y_magnitude(new_velocity);
                 self.ball.flip_x();
+                self.paddle_one.hit();
             }
 
             if self.ball_collides_with_paddle_two() {
@@ -193,6 +200,7 @@ impl Game {
 
                 self.ball.set_velocity_y_magnitude(new_velocity);
                 self.ball.flip_x();
+                self.paddle_two.hit();
             }
         }
     }

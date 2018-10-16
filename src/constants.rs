@@ -32,7 +32,7 @@ pub const OUTER_CONSTANTS: Constants = Constants {
     ball_width: 610,
     ball_height: 410,
     max_ball_speed: 1.5,
-    ball_color: Color::Red,
+    ball_color: Color::Purple,
 };
 
 pub const INNER_CONSTANTS: Constants = Constants {
@@ -45,5 +45,5 @@ pub const INNER_CONSTANTS: Constants = Constants {
     ball_width: 75,
     ball_height: 75,
     max_ball_speed: 1.0,
-    ball_color: Color::Red,
+    ball_color: Color::Green,
 };
