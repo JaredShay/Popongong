@@ -40,6 +40,7 @@ fn main() {
         OUTER_CONSTANTS.window_height as u32
     )
         .position_centered()
+        //.fullscreen()
         .opengl()
         .build()
         .unwrap();
@@ -118,6 +119,7 @@ fn main() {
     'main: loop {
         curr_time = Instant::now();
         delta_ms = to_ms(curr_time.duration_since(prev_time));
+        prev_time = curr_time;
 
         // Grab lastest events and iterate over them
         for event in event_pump.poll_iter() {
@@ -145,8 +147,5 @@ fn main() {
         }
 
         render(&mut outer_game, &mut inner_game, &textures, &mut canvas);
-
-        // Update time. Conceptually easier for me to see this here
-        prev_time = curr_time;
     }
 }
