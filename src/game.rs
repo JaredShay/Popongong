@@ -1,4 +1,5 @@
 extern crate sdl2;
+use sdl2::rect::Rect;
 
 use sdl2::keyboard::Keycode;
 
@@ -6,7 +7,7 @@ use std::collections::HashMap;
 
 use vector::Vector;
 
-use component::{Paddle, Ball, Background, Components};
+use component::{Paddle, Ball, Component};
 
 use constants::{Color, Constants};
 
@@ -19,7 +20,8 @@ pub enum GameStates {
 
 #[derive(Debug)]
 pub struct Game {
-    pub background: Background,
+    pub background: Rect,
+    pub background_color: Color,
     pub paddle_one: Paddle,
     pub paddle_two: Paddle,
     pub ball: Ball,
@@ -34,20 +36,18 @@ impl Game {
             constants.paddle_width as u32,
             constants.paddle_height as u32,
             0.5,
-            Color::Black,
+            Color::Red,
         );
 
         let paddle_two = Paddle::new(
-            // TODO: There is somehow an "off by 5 error" in my math here. Not
-            // really sure how. But just hard coding a + 5.0 here to fix it...
             Vector {
-                x: (constants.window_width - constants.paddle_width) as f64 + 5.0,
+                x: (constants.window_width - constants.paddle_width) as f64,
                 y: 0.0
             },
             constants.paddle_width as u32,
             constants.paddle_height as u32,
             0.5,
-            Color::Black,
+            Color::Red,
         );
 
         // calculate starting velocity
@@ -78,12 +78,9 @@ impl Game {
             constants.ball_color.clone()
         );
 
-        let background = Background::new(
-            constants.window_width, constants.window_height, Color::White
-        );
-
         Game {
-            background: background,
+            background: Rect::new(0, 0, constants.window_width as u32, constants.window_height as u32),
+            background_color: Color::White,
             paddle_one: paddle_one,
             paddle_two: paddle_two,
             ball: ball,
@@ -96,13 +93,19 @@ impl Game {
         self.state = GameStates::Playing;
     }
 
-    pub fn components(&mut self) -> Vec<Components> {
-        vec![
-            Components::Background(&mut self.background),
-            Components::Paddle(&mut self.paddle_one),
-            Components::Paddle(&mut self.paddle_two),
-            Components::Ball(&mut self.ball),
-        ]
+    pub fn components(&mut self, origin: &Vector) -> Vec<Component> {
+        self.background.set_x(origin.x as i32);
+        self.background.set_y(origin.y as i32);
+
+        let mut components = vec![
+            (&self.background, &self.background_color)
+        ];
+
+        components.append(&mut self.paddle_one.components(&origin));
+        components.append(&mut self.paddle_two.components(&origin));
+        components.append(&mut self.ball.components(&origin));
+
+        return components;
     }
 
     pub fn play_pause(&mut self) -> () {

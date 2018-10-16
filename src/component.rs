@@ -5,34 +5,7 @@ use vector::Vector;
 
 use constants::{Color};
 
-#[derive(Debug)]
-pub enum Components <'a> {
-    Paddle(&'a mut Paddle),
-    Ball(&'a mut Ball),
-    Background(&'a mut Background),
-}
-
-#[derive(Debug)]
-pub struct Background {
-    pub rect: Rect,
-    pub color: Color,
-}
-
-impl Background {
-    pub fn new(width: i32, height: i32, color: Color) -> Background {
-        Background {
-            rect: Rect::new(0, 0, width as u32, height as u32),
-            color: color
-        }
-    }
-
-    pub fn sdl_rect(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
-        self.rect.set_x(origin.x as i32);
-        self.rect.set_y(origin.y as i32);
-
-        return &self.rect;
-    }
-}
+pub type Component<'a> = (&'a sdl2::rect::Rect, &'a Color);
 
 #[derive(Debug)]
 pub struct Ball {
@@ -69,11 +42,13 @@ impl Ball {
         Vector { x: self.pos.x + self.width as f64 / 2.0, y: self.pos.y + self.height as f64 / 2.0 }
     }
 
-    pub fn sdl_rect(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
+    pub fn components(&mut self, origin: &Vector) -> Vec<Component> {
         self.rect.set_x(self.pos.x as i32 + origin.x as i32);
         self.rect.set_y(self.pos.y as i32 + origin.y as i32);
 
-        return &self.rect;
+        return vec![
+            (&self.rect, &self.color),
+        ];
     }
 
     pub fn update(&mut self, delta_ms: u64) -> () {
@@ -156,7 +131,8 @@ pub struct Paddle {
     pub velocity: Vector,
     pub background: Rect,
     pub border: Rect,
-    pub color: Color,
+    pub border_color: Color,
+    pub background_color: Color,
 }
 
 impl Paddle {
@@ -165,10 +141,11 @@ impl Paddle {
             pos: pos.clone(),
             width: width,
             height: height,
-            background: Rect::new(pos.x as i32, pos.y as i32, width - 5, height - 5),
+            background: Rect::new(pos.x as i32, pos.y as i32, width - 10, height - 10),
             border: Rect::new(pos.x as i32, pos.y as i32, width, height),
             velocity: Vector { x: 0.0, y: speed },
-            color: color,
+            border_color: color,
+            background_color: Color::White,
         };
     }
 
@@ -184,11 +161,17 @@ impl Paddle {
         Vector { x: self.pos.x + self.width as f64 / 2.0, y: self.pos.y + self.height as f64 / 2.0 }
     }
 
-    pub fn sdl_rect(&mut self, origin: &Vector) -> &sdl2::rect::Rect {
-        self.background.set_x(self.pos.x as i32 + origin.x as i32);
-        self.background.set_y(self.pos.y as i32 + origin.y as i32);
+    pub fn components(&mut self, origin: &Vector) -> Vec<Component> {
+        self.background.set_x((self.pos.x + origin.x + 5.0) as i32);
+        self.background.set_y((self.pos.y + origin.y + 5.0) as i32);
 
-        return &self.background;
+        self.border.set_x((self.pos.x + origin.x) as i32);
+        self.border.set_y((self.pos.y + origin.y) as i32);
+
+        return vec![
+            (&self.border, &self.border_color),
+            (&self.background, &self.background_color),
+        ];
     }
 
     pub fn up(&mut self, delta_ms: u64, limit: f64) -> () {
@@ -207,10 +190,10 @@ impl Paddle {
     pub fn down(&mut self, delta_ms: u64, limit: f64) -> () {
         let step_size = delta_ms as f64 * self.velocity.y;
 
-        if (self.pos.y + self.height as f64 + step_size) <= limit + 5.0 {
+        if (self.pos.y + self.height as f64 + step_size) <= limit {
             self.pos.y = self.pos.y + step_size;
         } else {
-            self.pos.y = limit - self.height as f64 + 5.0;
+            self.pos.y = limit - self.height as f64;
         }
     }
 
