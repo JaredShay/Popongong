@@ -186,6 +186,18 @@ impl Paddle {
         }
     }
 
+    pub fn reset_hits(&mut self) -> () {
+        self.hits = 0;
+    }
+
+    pub fn set_color(&mut self, color: &Color) -> () {
+        self.border_color = color.clone();
+
+        for segement in self.segments.iter_mut() {
+            segement.1 = color.clone();
+        }
+    }
+
     pub fn components(&mut self, origin: &Vector) -> Vec<Component> {
         let segment_height = (self.height - 10) / 5;
 

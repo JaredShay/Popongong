@@ -26,6 +26,7 @@ pub struct Game {
     pub paddle_two: Paddle,
     pub ball: Ball,
     pub state: GameStates,
+    pub color_index: usize,
     constants: Constants,
 }
 
@@ -36,7 +37,7 @@ impl Game {
             constants.paddle_width as u32,
             constants.paddle_height as u32,
             0.5,
-            Color::Green,
+            constants.color_seqence[0].clone(),
         );
 
         let paddle_two = Paddle::new(
@@ -47,7 +48,7 @@ impl Game {
             constants.paddle_width as u32,
             constants.paddle_height as u32,
             0.5,
-            Color::Green,
+            constants.color_seqence[0].clone(),
         );
 
         // calculate starting velocity
@@ -85,6 +86,7 @@ impl Game {
             paddle_two: paddle_two,
             ball: ball,
             state: GameStates::Paused,
+            color_index: 0,
             constants: constants,
         }
     }
@@ -114,6 +116,24 @@ impl Game {
         } else {
             self.state = GameStates::Paused;
         }
+    }
+
+    pub fn next_color(&mut self) -> () {
+        if self.color_index < 2 {
+            self.color_index = self.color_index + 1;
+        } else {
+            self.color_index = 0;
+        }
+
+        self.paddle_one.set_color(&self.constants.color_seqence[self.color_index]);
+        self.paddle_two.set_color(&self.constants.color_seqence[self.color_index]);
+
+        self.paddle_one.reset_hits();
+        self.paddle_two.reset_hits();
+    }
+
+    pub fn hits (&self) -> u8 {
+        return self.paddle_one.hits + self.paddle_two.hits;
     }
 
     pub fn update(

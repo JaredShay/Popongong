@@ -139,6 +139,11 @@ fn main() {
         outer_game.update(&keys_pressed, delta_ms);
         inner_game.update(&keys_pressed, delta_ms);
 
+        if outer_game.hits() == 10 && inner_game.hits() == 10 {
+            outer_game.next_color();
+            inner_game.next_color();
+        }
+
         render(&mut outer_game, &mut inner_game, &textures, &mut canvas);
 
         // Update time. Conceptually easier for me to see this here
