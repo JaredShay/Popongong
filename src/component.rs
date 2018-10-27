@@ -149,7 +149,7 @@ impl Paddle {
             border: Rect::new(pos.x as i32, pos.y as i32, width, height),
             velocity: Vector { x: 0.0, y: speed },
             border_color: color.clone(),
-            background_color: Color::White,
+            background_color: Color::Black,
             segments: [
                 (Rect::new(0, 0, width - 10, segment_height), color.clone()),
                 (Rect::new(0, 0, width - 10, segment_height), color.clone()),

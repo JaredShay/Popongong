@@ -40,7 +40,7 @@ fn main() {
         OUTER_CONSTANTS.window_height as u32
     )
         .position_centered()
-        //.fullscreen()
+        .fullscreen()
         .opengl()
         .build()
         .unwrap();

@@ -9,12 +9,12 @@ use constants;
 pub fn init_textures<'a>(
     creator: &'a sdl2::render::TextureCreator<sdl2::video::WindowContext>
 ) -> HashMap<constants::Color, sdl2::render::Texture<'a>> {
-    let black = create_texture(&creator, 0, 0, 0);
+    let black = create_texture(&creator, 0, 13, 40);
     let white = create_texture(&creator, 255, 255, 255);
-    let red = create_texture(&creator, 255, 0, 0);
-    let green = create_texture(&creator, 0, 255, 0);
-    let blue = create_texture(&creator, 0, 0, 255);
-    let purple = create_texture(&creator, 164, 66, 244);
+    let red = create_texture(&creator, 221, 83, 134);
+    let green = create_texture(&creator, 70, 184, 135);
+    let blue = create_texture(&creator, 7, 137, 199);
+    let purple = create_texture(&creator, 253, 184, 119); // not purple
 
     let mut textures = HashMap::new();
 

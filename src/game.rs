@@ -36,7 +36,7 @@ impl Game {
             Vector { x: 0.0, y: 0.0 },
             constants.paddle_width as u32,
             constants.paddle_height as u32,
-            0.5,
+            constants.max_paddle_speed,
             constants.color_seqence[0].clone(),
         );
 
@@ -47,7 +47,7 @@ impl Game {
             },
             constants.paddle_width as u32,
             constants.paddle_height as u32,
-            0.5,
+            constants.max_paddle_speed,
             constants.color_seqence[0].clone(),
         );
 
@@ -65,11 +65,10 @@ impl Game {
                 y: ball_y as f64,
             };
 
-        // TODO: 0.4 is just magic to make the init velocity feel right.
         let ball_velocity = target
             .subtract(&ball_starting_pos)
             .normalize()
-            .product(0.4);
+            .product(constants.max_ball_speed);
 
         let ball = Ball::new(
             ball_starting_pos,
@@ -81,7 +80,7 @@ impl Game {
 
         Game {
             background: Rect::new(0, 0, constants.window_width as u32, constants.window_height as u32),
-            background_color: Color::White,
+            background_color: constants.background_color.clone(),
             paddle_one: paddle_one,
             paddle_two: paddle_two,
             ball: ball,
@@ -261,7 +260,7 @@ impl Game {
     // TODO: A nice enhancment here would be to factor in paddle velocity. If
     // the paddle is stationary don't apply any modification.
     fn vel_modifier(&self, distance: f64) -> f64 {
-        distance / self.constants.paddle_height as f64 / 2.0 * self.constants.max_ball_speed
+        distance / self.constants.paddle_height as f64 / 2.0 * self.constants.max_ball_speed * 1.5
     }
 
     fn ball_collides_with_paddle_extremity(&self, distance: f64) -> bool {
