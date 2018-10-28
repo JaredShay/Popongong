@@ -6,3 +6,4 @@ authors = ["Jared <jared.shay@gmail.com>"]
 
 [dependencies]
 sdl2 = "0.31"
+rand = "^0.5"

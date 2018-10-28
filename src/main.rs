@@ -1,4 +1,5 @@
 extern crate sdl2;
+extern crate rand;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;

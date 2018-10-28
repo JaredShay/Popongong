@@ -1,6 +1,6 @@
-extern crate sdl2;
-use sdl2::rect::Rect;
+use rand::{thread_rng, Rng};
 
+use sdl2::rect::Rect;
 use sdl2::keyboard::Keycode;
 
 use std::collections::HashMap;
@@ -51,12 +51,6 @@ impl Game {
             constants.color_seqence[0].clone(),
         );
 
-        // calculate starting velocity
-        // Pick random point on screen
-        // Calc norm vector from ball
-        // Multiple by some speed multiplier
-        let target = Vector { x: 0.0, y: constants.window_width as f64 / 2.0 };
-
         let ball_x = constants.window_width / 2 - constants.ball_width / 2;
         let ball_y = constants.window_height / 2 - constants.ball_height / 2;
 
@@ -65,16 +59,19 @@ impl Game {
                 y: ball_y as f64,
             };
 
-        let ball_velocity = target
-            .subtract(&ball_starting_pos)
-            .normalize()
-            .product(constants.max_ball_speed.x);
+        let y_sign_vals = vec![-1.0, 1.0];
+        let y_sign = thread_rng().choose(&y_sign_vals).unwrap();
+        let starting_ball_y_vel = thread_rng().gen_range(0.1, constants.max_ball_speed.y * 0.75) * y_sign;
+
+        let x_sign_vals = vec![-1.0, 1.0];
+        let x_sign = thread_rng().choose(&x_sign_vals).unwrap();
+        let starting_ball_x_vel = constants.max_ball_speed.x * x_sign;
 
         let ball = Ball::new(
             ball_starting_pos,
             constants.ball_width as u32,
             constants.ball_height as u32,
-            ball_velocity,
+            Vector { x: starting_ball_x_vel, y: starting_ball_y_vel },
             constants.ball_color.clone()
         );
 
