@@ -1,3 +1,5 @@
+use vector::{Vector};
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Color {
     Red,
@@ -18,7 +20,7 @@ pub struct Constants {
     pub max_paddle_speed: f64,
     pub ball_width: i32,
     pub ball_height: i32,
-    pub max_ball_speed: f64,
+    pub max_ball_speed: Vector,
     pub ball_color: Color,
     pub background_color: Color,
     pub color_seqence: [Color; 3],
@@ -33,7 +35,7 @@ pub const OUTER_CONSTANTS: Constants = Constants {
     max_paddle_speed: 0.3,
     ball_width: 610,
     ball_height: 410,
-    max_ball_speed: 0.5,
+    max_ball_speed: Vector { x: 0.2, y: 0.8 },
     ball_color: Color::Purple,
     background_color: Color::Black,
     color_seqence: [Color::Red, Color::Green, Color::Blue],
@@ -48,7 +50,7 @@ pub const INNER_CONSTANTS: Constants = Constants {
     max_paddle_speed: 0.25,
     ball_width: 25,
     ball_height: 25,
-    max_ball_speed: 0.6,
+    max_ball_speed: Vector { x: 0.5, y: 1.5 },
     ball_color: Color::Purple,
     background_color: Color::Black,
     color_seqence: [Color::Red, Color::Green, Color::Blue],

@@ -68,7 +68,7 @@ impl Game {
         let ball_velocity = target
             .subtract(&ball_starting_pos)
             .normalize()
-            .product(constants.max_ball_speed);
+            .product(constants.max_ball_speed.x);
 
         let ball = Ball::new(
             ball_starting_pos,
@@ -260,7 +260,7 @@ impl Game {
     // TODO: A nice enhancment here would be to factor in paddle velocity. If
     // the paddle is stationary don't apply any modification.
     fn vel_modifier(&self, distance: f64) -> f64 {
-        distance / self.constants.paddle_height as f64 / 2.0 * self.constants.max_ball_speed * 1.5
+        distance / self.constants.paddle_height as f64 / 2.0 * self.constants.max_ball_speed.y
     }
 
     fn ball_collides_with_paddle_extremity(&self, distance: f64) -> bool {
