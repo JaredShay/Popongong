@@ -1,13 +1,11 @@
 use std::collections::HashMap;
 use std::time::{Instant};
-use std::path::Path;
 
 extern crate sdl2;
 extern crate rand;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::mixer::{DEFAULT_CHANNELS, INIT_MP3, INIT_FLAC, INIT_MOD, INIT_OGG, AUDIO_S16LSB};
 
 mod vector;
 mod component;
@@ -27,7 +25,7 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
 
     let video_subsystem = sdl_context.video().unwrap();
-    let audio_subsystem = sdl_context.audio().unwrap();
+    let _audio_subsystem = sdl_context.audio().unwrap();
 
     let window = video_subsystem.window(
         "Popongong",
@@ -53,30 +51,7 @@ fn main() {
     let texture_creator = canvas.texture_creator();
     let textures = init_textures(&texture_creator);
 
-    let frequency = 44_100;
-    let format = AUDIO_S16LSB; // signed 16 bit samples, in little-endian byte order
-    let channels = DEFAULT_CHANNELS; // Stereo
-    let chunk_size = 1_024;
-
-    sdl2::mixer::open_audio(frequency, format, channels, chunk_size).unwrap();
-    let mixer_context = sdl2::mixer::init(
-        INIT_MP3 | INIT_FLAC | INIT_MOD | INIT_OGG
-    ).unwrap();
-
-    sdl2::mixer::allocate_channels(4);
-
-    let ping_file = Path::new("./sounds/ping.wav");
-    let pong_file = Path::new("./sounds/pong.wav");
-
-    let ping = sdl2::mixer::Music::from_file(ping_file).unwrap();
-    let pong = sdl2::mixer::Music::from_file(pong_file).unwrap();
-
-    let sounds = Sounds {
-        ping: &ping,
-        pong: &pong,
-    };
-
-    sounds.ping();
+    let sounds = Sounds::new();
 
     let mut outer_game = Game::new(OUTER_CONSTANTS);
     let mut inner_game = Game::new(INNER_CONSTANTS);
