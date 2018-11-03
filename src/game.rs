@@ -11,6 +11,8 @@ use component::{Paddle, Ball, Component};
 
 use constants::{Color, Constants};
 
+use sounds::{Sounds};
+
 #[derive(Debug, PartialEq)]
 pub enum GameStates {
     Playing,
@@ -19,7 +21,7 @@ pub enum GameStates {
 }
 
 #[derive(Debug)]
-pub struct Game {
+pub struct Game<'a> {
     pub background: Rect,
     pub background_color: Color,
     pub paddle_one: Paddle,
@@ -27,11 +29,12 @@ pub struct Game {
     pub ball: Ball,
     pub state: GameStates,
     pub color_index: usize,
+    pub sounds: &'a Sounds<'a>,
     constants: Constants,
 }
 
-impl Game {
-    pub fn new(constants: Constants) -> Game {
+impl<'a> Game<'a> {
+    pub fn new(constants: Constants, sounds: &'a Sounds) -> Game<'a> {
         let paddle_one = Paddle::new(
             Vector { x: 0.0, y: 0.0 },
             constants.paddle_width as u32,
@@ -84,6 +87,7 @@ impl Game {
             state: GameStates::Paused,
             color_index: 0,
             constants: constants,
+            sounds: &sounds
         }
     }
 
@@ -201,6 +205,7 @@ impl Game {
                 self.ball.set_velocity_y_magnitude(new_velocity);
                 self.ball.flip_x();
                 self.paddle_one.hit();
+                self.paddle_collision_sound(&self.paddle_one);
             }
 
             if self.ball_collides_with_paddle_two() {
@@ -217,8 +222,15 @@ impl Game {
                 self.ball.set_velocity_y_magnitude(new_velocity);
                 self.ball.flip_x();
                 self.paddle_two.hit();
+                self.paddle_collision_sound(&self.paddle_two);
             }
         }
+    }
+
+    fn paddle_collision_sound(&self, paddle: &Paddle) -> () {
+        self.sounds.play(
+            format!("paddle_{}_{}", self.color_index + 1, paddle.hits)
+        );
     }
 
     fn ball_collides_with_paddle_one(&self) -> bool {

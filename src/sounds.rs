@@ -1,41 +1,34 @@
 use sdl2;
-use sdl2::mixer::{DEFAULT_CHANNELS, INIT_MP3, INIT_FLAC, INIT_MOD, INIT_OGG, AUDIO_S16LSB};
 
 use std::path::Path;
+use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct Sounds<'a> {
-    pub ping: sdl2::mixer::Music<'a>,
-    pub pong: sdl2::mixer::Music<'a>
+    sounds: HashMap<String, sdl2::mixer::Music<'a>>
 }
 
 impl<'a> Sounds<'a> {
     pub fn new() -> Sounds<'a> {
-        let frequency = 44_100;
-        let format = AUDIO_S16LSB; // signed 16 bit samples, in little-endian byte order
-        let channels = DEFAULT_CHANNELS; // Stereo
-        let chunk_size = 1_024;
+        let mut sounds: HashMap<String, sdl2::mixer::Music> = HashMap::new();
 
-        sdl2::mixer::open_audio(frequency, format, channels, chunk_size).unwrap();
-        let _mixer_context = sdl2::mixer::init(
-            INIT_MP3 | INIT_FLAC | INIT_MOD | INIT_OGG
-        ).unwrap();
-
-        sdl2::mixer::allocate_channels(4);
-
-        let ping_file = Path::new("./sounds/ping.wav");
-        let pong_file = Path::new("./sounds/pong.wav");
-
-        Sounds {
-            ping: sdl2::mixer::Music::from_file(ping_file).unwrap(),
-            pong: sdl2::mixer::Music::from_file(pong_file).unwrap(),
+        for level in 1..4 {
+            for sound in 1..6 {
+                sounds.insert(
+                    format!("paddle_{}_{}", level, sound).to_string(),
+                    sdl2::mixer::Music::from_file(
+                        Path::new(&format!("./sounds/paddle_{}_{}.wav", level, sound))
+                    ).unwrap()
+                );
+            }
         }
+
+        Sounds { sounds: sounds }
     }
 
-    pub fn pong(&self) -> () { self.play(&self.pong); }
-    pub fn ping(&self) -> () { self.play(&self.ping); }
-
-    fn play(&self, sound: &sdl2::mixer::Music) -> () {
-        match sound.play(1) {
+    pub fn play(&self, sound: String) -> () {
+        // -1 signals to play on first available channel
+        match self.sounds.get(&sound).unwrap().play(-1) {
             Err(e) => println!("Error playing sound: {:?}", e),
             _ => ()
         };
