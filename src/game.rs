@@ -64,7 +64,7 @@ impl<'a> Game<'a> {
 
         let y_sign_vals = vec![-1.0, 1.0];
         let y_sign = thread_rng().choose(&y_sign_vals).unwrap();
-        let starting_ball_y_vel = thread_rng().gen_range(0.1, constants.max_ball_speed.y * 0.75) * y_sign;
+        let starting_ball_y_vel = thread_rng().gen_range(0.1, constants.max_ball_speed.y * 0.50) * y_sign;
 
         let x_sign_vals = vec![-1.0, 1.0];
         let x_sign = thread_rng().choose(&x_sign_vals).unwrap();
