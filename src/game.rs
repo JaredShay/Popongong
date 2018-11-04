@@ -166,14 +166,6 @@ impl<'a> Game<'a> {
                 }
             }
 
-            // Collisions
-            // - ball_top_screen_edge
-            // - ball_bottom_screen_edge
-            // - ball_left_screen_edge
-            // - ball_right_screen_edge
-            // - ball_paddle_one
-            // - ball_paddle_two
-
             self.ball.update(delta_ms);
 
             // Edge collisions
@@ -184,11 +176,13 @@ impl<'a> Game<'a> {
             if self.ball_collides_with_left() {
                 self.ball.flip_x();
                 self.paddle_one.miss();
+                self.sounds.play("left_right_edge_collision".to_string());
             }
 
             if self.ball_collides_with_right() {
                 self.ball.flip_x();
                 self.paddle_two.miss();
+                self.sounds.play("left_right_edge_collision".to_string());
             }
 
             if self.ball_collides_with_paddle_one() {

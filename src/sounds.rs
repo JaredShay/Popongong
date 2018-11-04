@@ -23,6 +23,13 @@ impl<'a> Sounds<'a> {
             }
         }
 
+        sounds.insert(
+            "left_right_edge_collision".to_string(),
+            sdl2::mixer::Music::from_file(
+                Path::new("./sounds/left_right_edge_collision.wav")
+            ).unwrap()
+        );
+
         Sounds { sounds: sounds }
     }
 
