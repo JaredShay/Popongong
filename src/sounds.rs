@@ -27,8 +27,8 @@ impl<'a> Sounds<'a> {
     }
 
     pub fn play(&self, sound: String) -> () {
-        // -1 signals to play on first available channel
-        match self.sounds.get(&sound).unwrap().play(-1) {
+        // 1 is the number of loops
+        match self.sounds.get(&sound).unwrap().play(1) {
             Err(e) => println!("Error playing sound: {:?}", e),
             _ => ()
         };
