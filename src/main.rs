@@ -39,15 +39,13 @@ fn main() {
         INIT_MP3 | INIT_FLAC | INIT_MOD | INIT_OGG
     ).unwrap();
 
-    sdl2::mixer::allocate_channels(4);
-
     let window = video_subsystem.window(
         "Popongong",
         OUTER_CONSTANTS.window_width as u32,
         OUTER_CONSTANTS.window_height as u32
     )
         .position_centered()
-        .fullscreen()
+    //    .fullscreen()
         .opengl()
         .build()
         .unwrap();
@@ -118,9 +116,8 @@ fn main() {
 
     render(&mut outer_game, &mut inner_game, &textures, &mut canvas);
 
-
-    // Sleep for 2 secs for loading time here
-    sleep(Duration::new(4, 0));
+    // Sleep for loading time here
+    sleep(Duration::new(5, 0));
     outer_game.start();
     inner_game.start();
 
